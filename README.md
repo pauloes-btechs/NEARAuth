@@ -46,7 +46,8 @@ npm run test:e2e    # Playwright browser tests
 npm run lint        # syntax checks
 npm run build:zip   # downloads/nearauth-extension.zip
 npm run serve       # http://localhost:8080  (dashboard + demo/signup.html)
-node tests/e2e/demo.e2e.js   # extension end-to-end run (needs `playwright` + Chrome)
+npm run test:e2e:demo # extension E2E (headless by default)
+PW_HEADED=1 PW_SLOW_MO=800 npm run test:e2e:demo # visible browser, slowed for demos
 node tests/e2e/vault.e2e.js  # encrypted-vault end-to-end run
 (cd contracts/audit-ledger && cargo test)   # NEAR contract unit tests
 ```
