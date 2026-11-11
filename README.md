@@ -56,3 +56,6 @@ Docs: [Architecture](docs/ARCHITECTURE.md) · [Alias backend decision](docs/deci
 ## License
 
 MIT — see [LICENSE](LICENSE).
+## Team
+
+Built at the NEAR Private AI Hackathon NYC (Build City × NEAR Legion), November 11, 2026.
