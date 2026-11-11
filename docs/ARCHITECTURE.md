@@ -17,6 +17,19 @@
 - **In-page preview.** `demo/signup.html` can load the same `content.js` directly; without `chrome.storage` it falls back to `localStorage`.
 - **Audit ledger.** Each event `{id,label,kind,ts,nonce}` is hashed with SHA-256 in the browser. The commitment is stored with the height/hash of the latest final NEAR Testnet block observed at commit time. Verification recomputes hashes and flags mismatches. Nothing is written on-chain.
 
+## Modules added after the demo
+
+| Module | Role |
+|---|---|
+| `extension/background.js` | Service worker: the only network caller; owns provider calls and the vault key session |
+| `extension/lib/alias-provider.js` | Provider contract, `DemoProvider`, `AddyProvider` |
+| `extension/lib/vault.js` | PBKDF2 → AES-256-GCM vault primitives |
+| `extension/lib/detection.js` | Exposure classification (pure functions) |
+| `extension/lib/merkle.js` | Merkle batching and inclusion proofs |
+| `contracts/audit-ledger` | NEAR contract storing Merkle roots (not deployed) |
+
+Message boundary: content scripts may send `alias.create`, `provider.status`, `vault.status` and write-only `vault.save`. Everything that reads secrets (`vault.reveal`, `vault.unlock`, `vault.export`) is accepted only from the extension's own pages.
+
 ## Target (production)
 
 | Layer | Design direction |

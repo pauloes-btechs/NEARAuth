@@ -26,29 +26,17 @@ No extension installed? The test page has an **in-page preview** button that run
 
 | Capability | State |
 |---|---|
-| Extension detects signup email/password fields, generates and fills alias + password | **Functional** |
+| Extension detects signup email/password fields, generates and fills alias + password | **Functional** (end-to-end tested) |
 | Extension → dashboard account sync (local browser storage) | **Functional** |
-| Alias generation (cryptographically random) | **Functional**, but aliases use the reserved `alias.nearauth.example` domain and **cannot receive email** |
-| Password generation | **Functional**; the password is filled into the form only and is **never stored** — there is no vault yet |
-| SHA-256 event commitments + integrity verification / tamper detection | **Functional**, local to the browser |
-| NEAR Testnet connection | **Live, read-only**: the dashboard reads the latest final block over public RPC and pins commitments to it |
-| NEAR transactions / smart contract | **Not implemented.** No transaction is ever broadcast and no transaction ID is shown |
-| Exposure detection | **Simulated** scenario; no inbound mail is processed |
-| Email forwarding, settings marked "planned", mobile apps | **Not implemented** |
-
-## Browser tests
-
-Install the dependencies and Playwright's Chromium browser, then run the browser tests:
-
-```sh
-npm ci
-npx playwright install chromium
-npm run test:e2e
-```
-
-The tests are in `tests/playwright/`. GitHub Actions runs the unit tests, lint checks,
-and Playwright tests on pushes and pull requests. The custom reporter in `reporters/`
-prints each test result and a summary to the console.
+| Alias provider adapter + demo provider | **Functional**. Default aliases use `alias.nearauth.example` and **cannot receive email** |
+| Real forwarding aliases via addy.io (`AddyProvider`) | **Implemented, not verified live** — tested against the documented API with a mocked `fetch`; needs your own addy.io token |
+| Encrypted credential vault (AES-256-GCM, PBKDF2 600k, auto-lock) | **Functional** (unit + end-to-end tested). **Not audited**; no recovery |
+| Exposure classification engine (sender/org matching, evidence, confidence) | **Functional** as a library; the dashboard feeds it **simulated** inbound messages. No real mail is processed |
+| SHA-256 event commitments, Merkle batching, inclusion proofs, tamper detection | **Functional**, local to the browser |
+| NEAR Testnet connection | **Live, read-only**: latest final block over public RPC |
+| NEAR audit-ledger contract | **Written and unit-tested; not deployed.** No transaction is ever broadcast and no transaction ID is shown |
+| Inbound mail pipeline, notifications, relayer, sync backend | **Not implemented** |
+| iOS / Android apps | **Design only** ([docs/MOBILE.md](docs/MOBILE.md)) |
 
 ## Develop
 
@@ -58,10 +46,12 @@ npm run test:e2e    # Playwright browser tests
 npm run lint        # syntax checks
 npm run build:zip   # downloads/nearauth-extension.zip
 npm run serve       # http://localhost:8080  (dashboard + demo/signup.html)
-node tests/e2e/demo.e2e.js   # optional end-to-end run, needs `playwright`
+node tests/e2e/demo.e2e.js   # extension end-to-end run (needs `playwright` + Chrome)
+node tests/e2e/vault.e2e.js  # encrypted-vault end-to-end run
+(cd contracts/audit-ledger && cargo test)   # NEAR contract unit tests
 ```
 
-Docs: [Architecture](docs/ARCHITECTURE.md) · [Roadmap & suggested issues](docs/ROADMAP.md) · [Maintainers guide](docs/MAINTAINERS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+Docs: [Architecture](docs/ARCHITECTURE.md) · [Alias backend decision](docs/decisions/0001-alias-forwarding.md) · [NEAR contract](contracts/audit-ledger/README.md) · [Mobile design](docs/MOBILE.md) · [Roadmap & suggested issues](docs/ROADMAP.md) · [Maintainers guide](docs/MAINTAINERS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## License
 

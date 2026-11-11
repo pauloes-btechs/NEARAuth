@@ -1,5 +1,17 @@
 # Roadmap and suggested issues
 
+Milestone status (2026-11-11): **A** adapter + addy.io backend shipped, live verification pending · **B** local encrypted vault shipped, unaudited · **C** classification engine shipped, no real inbound mail yet · **D** contract + Merkle proofs shipped, not deployed · **E** design only.
+
+Remaining work per milestone:
+
+- **A:** live-test `AddyProvider` with an owner token; encrypt the provider token with the vault key; pause/resume from the dashboard; SimpleLogin adapter; Cloudflare Email Worker on an owned domain.
+- **B:** security review; Argon2id; passkey (WebAuthn PRF) unlock; recovery kit; change-master-password flow; encrypt the account list.
+- **C:** inbound webhook/Email Worker feeding `investigate()`; full Public Suffix List; organisation graph (parent companies, known processors); push/email notifications; breach-intelligence source interface.
+- **D:** Wasm build + Testnet deploy (owner key); relayer service; sandbox integration tests; show real transaction links once anchors exist.
+- **E:** everything in docs/MOBILE.md.
+
+The lists below are the original issue breakdown.
+
 Each item is sized to be an independent GitHub issue. Labels in brackets.
 
 ## Milestone A — Real email aliases
