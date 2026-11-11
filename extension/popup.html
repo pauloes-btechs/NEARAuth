@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NEARAuth</title>
+<style>
+  body{margin:0;width:340px;font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0b1220;color:#e8eef7}
+  header{display:flex;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid #1e2a40}
+  .logo{width:26px;height:26px;border-radius:7px;background:#6ce7be;color:#0b1220;display:grid;place-items:center;font-weight:800}
+  h1{font-size:15px;margin:0}
+  .tag{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.8px;background:#f5c26b;color:#0b1220;border-radius:99px;padding:3px 8px}
+  main{padding:14px 16px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+  .stat{background:#101828;border:1px solid #1e2a40;border-radius:10px;padding:10px}
+  .stat b{display:block;font-size:20px}.stat span{color:#8fa1bd;font-size:11px}
+  h2{font-size:11px;letter-spacing:.8px;color:#8fa1bd;margin:14px 0 7px}
+  ul{list-style:none;margin:0;padding:0;max-height:170px;overflow:auto}
+  li{background:#101828;border:1px solid #1e2a40;border-radius:9px;padding:8px 10px;margin-bottom:6px}
+  li b{display:block}li code{color:#6ce7be;font-size:11px;word-break:break-all}li small{color:#8fa1bd}
+  .empty{color:#8fa1bd;border-style:dashed}
+  .btn{display:block;width:100%;box-sizing:border-box;text-align:center;font:inherit;font-weight:700;border-radius:9px;padding:9px;margin-top:8px;cursor:pointer;border:1px solid #2b3a55;background:transparent;color:#e8eef7}
+  .btn.primary{background:#6ce7be;border-color:#6ce7be;color:#0b1220}
+  .btn.danger{color:#f3a0a0}
+  label.toggle{display:flex;align-items:center;gap:8px;margin-top:12px;color:#c6d2e6}
+  footer{padding:10px 16px 14px;color:#8fa1bd;font-size:10.5px;border-top:1px solid #1e2a40}
+</style>
+</head>
+<body>
+<header><div class="logo">N</div><h1>NEARAuth</h1><span class="tag">DEMO</span></header>
+<main>
+  <div class="stats">
+    <div class="stat"><b id="count">0</b><span>protected accounts</span></div>
+    <div class="stat"><b id="pw">0</b><span>with generated password</span></div>
+  </div>
+  <h2>RECENT ALIASES</h2>
+  <ul id="list"></ul>
+  <button class="btn primary" id="dashboard">Open dashboard</button>
+  <button class="btn" id="testpage">Open signup test page</button>
+  <label class="toggle"><input type="checkbox" id="enabled"> Offer aliases on signup forms</label>
+  <button class="btn danger" id="clear">Clear local demo data</button>
+</main>
+<footer>Demo aliases use the reserved <b>.example</b> domain and cannot receive email. Passwords are never stored. Nothing leaves this browser.</footer>
+<script src="popup.js"></script>
+</body>
+</html>

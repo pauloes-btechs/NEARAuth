@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../extension/icons/icon32.png">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nova Market — Create your account (NEARAuth signup test page)</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f6fb;color:#182033}
+  .testbar{background:#101828;color:#dbe5f5;font-size:12.5px;padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+  .testbar b{color:#fff}.testbar a{color:#6ce7be}
+  .pill{border-radius:99px;padding:2px 10px;font-weight:700;font-size:11px}
+  .pill.ok{background:#6ce7be;color:#0b1220}.pill.warn{background:#f5c26b;color:#0b1220}
+  .testbar button{font:inherit;font-weight:700;background:transparent;color:#6ce7be;border:1px solid #6ce7be;border-radius:7px;padding:3px 10px;cursor:pointer}
+  nav{background:#fff;border-bottom:1px solid #e2e7f1;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+  .brand{font-weight:800;letter-spacing:1px;color:#3565c9}
+  nav span{color:#6b7791;font-size:13px}
+  .wrap{max-width:980px;margin:0 auto;padding:36px 20px 80px;display:grid;grid-template-columns:1fr 420px;gap:44px;align-items:start}
+  h1{font-size:34px;line-height:1.15;margin:12px 0}
+  .lede{color:#55617a;font-size:16px}
+  .perks{padding:0;list-style:none;color:#3c4760}.perks li{margin:9px 0}.perks li::before{content:"✓ ";color:#3565c9;font-weight:800}
+  form,.success{background:#fff;border:1px solid #e2e7f1;border-radius:16px;padding:26px;box-shadow:0 10px 30px rgba(24,32,51,.06)}
+  form h2{margin:0 0 4px;font-size:20px}form>p{margin:0 0 16px;color:#6b7791;font-size:13px}
+  label{display:block;font-weight:600;font-size:13px;margin:13px 0 5px}
+  input[type=text],input[type=email],input[type=password]{width:100%;font:inherit;padding:11px 12px;border:1px solid #cdd5e3;border-radius:9px;background:#fff}
+  input:focus{outline:2px solid #3565c9;outline-offset:1px;border-color:#3565c9}
+  .check{display:flex;gap:8px;align-items:flex-start;font-weight:400;color:#55617a;font-size:13px}
+  .submit{width:100%;margin-top:18px;font:inherit;font-weight:700;color:#fff;background:#3565c9;border:0;border-radius:10px;padding:13px;cursor:pointer}
+  .submit:hover{background:#2b55ad}
+  .fine{font-size:11.5px;color:#8591a8;text-align:center;margin:12px 0 0}
+  .success{display:none}.success h2{margin-top:0}.success code{background:#eef2fa;border-radius:6px;padding:2px 6px;word-break:break-all}
+  .success a{display:inline-block;margin-top:14px;font-weight:700;color:#fff;background:#101828;border-radius:10px;padding:11px 16px;text-decoration:none}
+  .error{color:#b3261e;font-size:13px;min-height:18px;margin-top:8px}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr;gap:20px;padding-top:22px}h1{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="testbar" role="status">
+  <b>NEARAuth signup test page</b>
+  <span id="extStatus" class="pill warn">Checking for extension…</span>
+  <span id="extHelp"></span>
+  <span style="margin-left:auto"><a href="../#accounts">Open NEARAuth dashboard →</a></span>
+</div>
+
+<nav><div class="brand">✦ NOVA MARKET</div><span>Fictional retailer · nothing is sent anywhere</span></nav>
+
+<div class="wrap">
+  <div>
+    <h1>Join the good stuff.</h1>
+    <p class="lede">Create a Nova Market account for member pricing, early drops and order tracking.</p>
+    <ul class="perks">
+      <li>Free shipping on your first order</li>
+      <li>Early access to seasonal collections</li>
+      <li>One-tap reorders and returns</li>
+    </ul>
+    <p class="lede" style="font-size:13px"><b>Presenter tip:</b> click into the <i>Email address</i> field. NEARAuth offers a private alias, then a strong password. You press “Create account” yourself — the extension never submits a form.</p>
+  </div>
+
+  <div>
+    <form id="signup" novalidate>
+      <h2>Create your account</h2>
+      <p>It takes less than a minute.</p>
+      <label for="fullname">Full name</label>
+      <input id="fullname" name="name" type="text" autocomplete="name" placeholder="Alex Rivera">
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 12 characters" required>
+      <label for="confirm">Confirm password</label>
+      <input id="confirm" name="confirm" type="password" autocomplete="new-password" placeholder="Repeat password" required>
+      <label class="check" style="margin-top:14px"><input type="checkbox" name="offers"> Send me offers and product news</label>
+      <div class="error" id="error" aria-live="polite"></div>
+      <button class="submit" type="submit">Create account</button>
+      <p class="fine">Test page: this form is handled entirely in your browser. No request is made.</p>
+    </form>
+
+    <div class="success" id="success" aria-live="polite">
+      <h2>🎉 Welcome to Nova Market</h2>
+      <p>Account created with <code id="usedEmail"></code>.</p>
+      <p id="aliasNote"></p>
+      <a href="../#accounts">See it in the NEARAuth dashboard →</a>
+      <p class="fine" style="text-align:left"><a href="signup.html" style="all:unset;cursor:pointer;text-decoration:underline">Reset test page</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var statusEl = document.getElementById('extStatus'), help = document.getElementById('extHelp');
+
+  function detected(version) {
+    statusEl.className = 'pill ok';
+    statusEl.textContent = 'Extension detected · v' + version;
+    help.textContent = 'Click the Email address field to begin.';
+  }
+  function loadScript(src) {
+    return new Promise(function (ok, fail) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = fail; document.body.appendChild(s); });
+  }
+  function startPreview() {
+    loadScript('../extension/lib/generators.js').then(function () { return loadScript('../extension/content.js'); }).then(function () {
+      statusEl.className = 'pill warn';
+      statusEl.textContent = 'In-page preview (extension not installed)';
+      help.textContent = 'Running the extension’s real content script inside this page. Click the Email address field.';
+    });
+  }
+  // The content script sets a data attribute on <html> when the real extension is installed.
+  setTimeout(function check() {
+    var v = document.documentElement.dataset.nearauthExtension;
+    if (v) return detected(v);
+    statusEl.textContent = 'Extension not detected';
+    help.innerHTML = '<a href="../downloads/nearauth-extension.zip">Download ZIP</a> → unzip → chrome://extensions → Developer mode → Load unpacked. &nbsp;';
+    var b = document.createElement('button');
+    b.textContent = 'Or run in-page preview';
+    b.onclick = startPreview;
+    help.appendChild(b);
+  }, 700);
+
+  var form = document.getElementById('signup');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault(); // nothing is ever sent
+    var email = form.email.value.trim(), pw = form.password.value, err = document.getElementById('error');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = 'Enter a valid email address.'; return; }
+    if (pw.length < 12) { err.textContent = 'Use at least 12 characters for your password.'; return; }
+    if (pw !== form.confirm.value) { err.textContent = 'Passwords do not match.'; return; }
+    form.style.display = 'none';
+    document.getElementById('usedEmail').textContent = email;
+    document.getElementById('aliasNote').textContent = /@alias\.nearauth\.example$/.test(email)
+      ? 'Nova Market only ever saw your NEARAuth alias — not your real inbox. (Demo alias: it cannot receive email.)'
+      : 'You used a regular email address. Reset and try the NEARAuth alias.';
+    form.reset();
+    document.getElementById('success').style.display = 'block';
+  });
+})();
+</script>
+</body>
+</html>
