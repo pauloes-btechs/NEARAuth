@@ -53,6 +53,7 @@ test('content script never submits forms, persists passwords itself or makes net
 
 test('dashboard never invents NEAR transaction ids', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  assert.match(html, /On-chain transaction: none — SIMULATED, not broadcast/);
+  assert.match(html, /not anchored yet — no transaction exists/);
+  assert.doesNotMatch(html, /txns\/[1-9A-HJ-NP-Za-km-z]{40,}/, 'no hard-coded transaction hashes in the page');
   assert.match(html, /name="nearauth-dashboard"/);
 });

@@ -69,7 +69,7 @@ if (!Number.isFinite(slowMo) || slowMo < 0) {
   console.log('exposure investigation rendered');
 
   await page.evaluate(() => route('ledger'));
-  await page.waitForSelector('text=On-chain transaction: none — SIMULATED');
+  await page.waitForSelector('text=Merkle inclusion proof: valid');
   await page.evaluate(() => tamperDemo());
   await page.waitForSelector('text=MISMATCH');
   console.log('ledger integrity + tamper detection OK; NEAR chip:', await page.textContent('#near-chip'));

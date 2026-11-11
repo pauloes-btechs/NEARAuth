@@ -43,5 +43,5 @@ test('completes a new user demo journey', async ({ page }) => {
   await expect(page.locator('#ledger-list')).toContainText('Signed up with a protected Nova Market identity');
   await expect(page.locator('#ledger-list')).toContainText('Exposure simulation');
   await expect(page.locator('#ledger-list')).toContainText('Merkle inclusion proof: valid');
-  await expect(page.locator('#ledger-list')).toContainText('On-chain transaction: none — SIMULATED');
+  await expect(page.locator('#ledger-list')).toContainText('On-chain: not anchored yet');
 });
