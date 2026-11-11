@@ -1,4 +1,4 @@
-/* End-to-end check of the demo. Usage: `npm run serve` in one shell, then `node tests/e2e/demo.e2e.js`.
+/* End-to-end check of the demo. Usage: `npm run serve` in one shell, then `npm run test:e2e:demo`.
  * Tries the real unpacked extension first; falls back to the in-page preview if the browser refuses to load it. */
 const path = require('node:path');
 const os = require('node:os');
@@ -6,17 +6,36 @@ const fs = require('node:fs');
 const { chromium } = require('playwright');
 const BASE = process.env.BASE_URL || 'http://localhost:8080';
 const EXT = path.join(__dirname, '..', '..', 'extension');
+const headed = process.env.PW_HEADED === '1';
+const slowMo = Number(process.env.PW_SLOW_MO ?? (headed ? 500 : 0));
+
+if (!Number.isFinite(slowMo) || slowMo < 0) {
+  throw new Error('PW_SLOW_MO must be a non-negative number of milliseconds');
+}
 
 (async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nearauth-'));
   const ctx = await chromium.launchPersistentContext(dir, {
-    headless: true, channel: process.env.PW_CHANNEL || undefined, executablePath: process.env.CHROME_PATH || undefined,
-    args: ['--headless=new', '--no-sandbox', `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
+    headless: !headed,
+    slowMo,
+    channel: process.env.PW_CHANNEL || undefined,
+    executablePath: process.env.CHROME_PATH || undefined,
+    args: [
+      ...(!headed ? ['--headless=new'] : []),
+      '--no-sandbox',
+      `--disable-extensions-except=${EXT}`,
+      `--load-extension=${EXT}`,
+    ],
   });
   const errors = [];
   const page = await ctx.newPage();
-  page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('pageerror', (e) => errors.push(e.stack || String(e)));
+  page.on('console', (m) => {
+    if (m.type() === 'error') {
+      const location = m.location();
+      errors.push(`${m.text()} at ${location.url}:${location.lineNumber}:${location.columnNumber}`);
+    }
+  });
 
   await page.goto(`${BASE}/demo/signup.html`);
   await page.waitForTimeout(1200);

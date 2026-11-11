@@ -60,7 +60,48 @@ const NEAR_RPCS=['https://rpc.testnet.fastnear.com','https://test.rpc.fastnear.c
 async function nearConnect(){near=null;for(const url of NEAR_RPCS){try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'nearauth',method:'block',params:{finality:'final'}}),signal:AbortSignal.timeout(7000)});const h=(await r.json())?.result?.header;if(h&&h.height&&h.hash){near={rpc:new URL(url).host,height:h.height,hash:h.hash};break}}catch(e){}}renderNear();return near}
 function renderNear(){const chip=document.getElementById('near-chip'),st=document.getElementById('near-status');if(!chip)return;if(near){chip.className='chip green';chip.textContent='NEAR TESTNET · LIVE (READ-ONLY)';st.innerHTML=`Latest final block <b>#${Number(near.height).toLocaleString()}</b> · hash ${safe(near.hash)} · via ${safe(near.rpc)} · <a style="color:inherit" target="_blank" rel="noopener" href="https://testnet.nearblocks.io/blocks/${encodeURIComponent(near.hash)}">view on explorer ↗</a> · <a style="color:inherit" href="#ledger" onclick="nearConnect().then(renderLedger);return false">refresh</a>`}else{chip.className='chip amber';chip.textContent='NEAR TESTNET · UNREACHABLE';st.innerHTML='Could not reach a NEAR Testnet RPC from this browser. Commitments remain local only. <a style="color:inherit" href="#ledger" onclick="nearConnect().then(renderLedger);return false">Retry</a>'}}
 const payload=e=>[e.id,e.label,e.kind,e.ts,e.nonce].join('|');
-async function renderLedger(){const out=document.getElementById('ledger-list');if(!out)return;let dirty=false;for(const e of state.events){if(!e.commit){e.commit=await digest(payload(e));dirty=true}if(!e.block&&near){e.block={height:near.height,hash:near.hash};dirty=true}}if(dirty)store();const batch=await NEARAuthMerkle.build(state.events.map(e=>e.commit));renderAnchor(batch);const proofOf={};state.events.forEach((e,i)=>proofOf[e.id]=batch.proofs[i]);const rows=[];for(const e of [...state.events].reverse().slice(0,25)){const fresh=await digest(payload(e));const ok=fresh===e.commit;const included=await NEARAuthMerkle.verify(fresh,proofOf[e.id],batch.root);rows.push(`<div class="audit-row"><div class="timeline-marker">${icon('cube')}</div><div><b>${safe(e.label)}</b><small>${new Date(e.ts).toLocaleString()} · ${safe(e.kind)}</small><div class="hash" title="SHA-256 commitment computed in this browser">Commitment: ${e.commit.slice(0,40)}…</div><div class="hash">${e.block?`Reference block (real, read from NEAR Testnet): #${Number(e.block.height).toLocaleString()} · ${safe(String(e.block.hash).slice(0,16))}…`:'Reference block: none (Testnet not reachable when committed)'}</div><div class="hash">Merkle inclusion proof: ${included?'valid':'INVALID'} (${proofOf[e.id].length} sibling hash${proofOf[e.id].length===1?'':'es'} to batch root)</div><div class="hash">On-chain: ${state.lastAnchor&&state.lastAnchor.root===batch.root?'covered by the batch root anchored at block #'+Number(state.lastAnchor.block).toLocaleString():'not anchored yet — no transaction exists for this event\'s batch'}</div></div><div class="audit-badge" style="${ok?'':'background:#5a1f25;color:#ffb3b3;border-color:#a8434d'}">${ok?'Integrity ✓':'MISMATCH ✗'}</div></div>`)}out.innerHTML=rows.join('')}
+let ledgerRenderGeneration=0;
+async function renderLedger() {
+  const out = document.getElementById('ledger-list');
+  if (!out) return;
+
+  const generation = ++ledgerRenderGeneration;
+  const events = [...state.events];
+  let dirty = false;
+  for (const event of events) {
+    if (!event.commit) {
+      event.commit = await digest(payload(event));
+      dirty = true;
+    }
+    if (!event.block && near) {
+      event.block = { height: near.height, hash: near.hash };
+      dirty = true;
+    }
+  }
+  if (generation !== ledgerRenderGeneration) return;
+  if (dirty) store();
+
+  const batch = await NEARAuthMerkle.build(events.map((event) => event.commit));
+  if (generation !== ledgerRenderGeneration) return;
+  renderAnchor(batch);
+
+  const proofOf = {};
+  events.forEach((event, index) => {
+    proofOf[event.id] = batch.proofs[index];
+  });
+
+  const rows = [];
+  for (const event of [...events].reverse().slice(0, 25)) {
+    const fresh = await digest(payload(event));
+    const proof = proofOf[event.id];
+    const included = await NEARAuthMerkle.verify(fresh, proof, batch.root);
+    if (generation !== ledgerRenderGeneration) return;
+
+    const intact = fresh === event.commit;
+    rows.push(`<div class="audit-row"><div class="timeline-marker">${icon('cube')}</div><div><b>${safe(event.label)}</b><small>${new Date(event.ts).toLocaleString()} · ${safe(event.kind)}</small><div class="hash" title="SHA-256 commitment computed in this browser">Commitment: ${event.commit.slice(0, 40)}…</div><div class="hash">${event.block ? `Reference block (real, read from NEAR Testnet): #${Number(event.block.height).toLocaleString()} · ${safe(String(event.block.hash).slice(0, 16))}…` : 'Reference block: none (Testnet not reachable when committed)'}</div><div class="hash">Merkle inclusion proof: ${included ? 'valid' : 'INVALID'} (${proof.length} sibling hash${proof.length === 1 ? '' : 'es'} to batch root)</div><div class="hash">On-chain: ${state.lastAnchor&&state.lastAnchor.root===batch.root?'covered by the batch root anchored at block #'+Number(state.lastAnchor.block).toLocaleString():'not anchored yet — no transaction exists for this event\'s batch'}</div></div><div class="audit-badge" style="${intact ? '' : 'background:#5a1f25;color:#ffb3b3;border-color:#a8434d'}">${intact ? 'Integrity ✓' : 'MISMATCH ✗'}</div></div>`);
+  }
+  if (generation === ledgerRenderGeneration) out.innerHTML = rows.join('');
+}
 async function verifyLedger(){let bad=0;for(const e of state.events){if(e.commit&&(await digest(payload(e)))!==e.commit)bad++}await renderLedger();toast(bad?`${bad} event(s) fail verification — the record no longer matches its commitment.`:`${state.events.length} commitments verified locally. No NEAR transaction was made.`)}
 function tamperDemo(){const e=state.events[state.events.length-1];if(!e)return;if(e.tampered){e.label=e.tampered;delete e.tampered;toast('Original record restored')}else{e.tampered=e.label;e.label=e.label+' (edited after the fact)';toast('Record altered without updating its commitment — now click Verify integrity')}store();renderLedger()}
 /* ---- Extension bridge: accounts created by the Chrome extension (or in-page preview) ---- */
