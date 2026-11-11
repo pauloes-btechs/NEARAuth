@@ -27,6 +27,8 @@ npm test
 ```
 
 The Playwright tests are in `tests/playwright/`.
+GitHub Actions runs them on pushes and pull requests.
+The custom reporter in `reporters/` prints each test result and a summary to the console.
 
 ## Presentation guidance
 
