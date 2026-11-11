@@ -16,7 +16,7 @@
   h2{font-size:11px;letter-spacing:.8px;color:#8fa1bd;margin:14px 0 7px}
   ul{list-style:none;margin:0;padding:0;max-height:170px;overflow:auto}
   li{background:#101828;border:1px solid #1e2a40;border-radius:9px;padding:8px 10px;margin-bottom:6px}
-  li b{display:block}li code{color:#6ce7be;font-size:11px;word-break:break-all}li small{color:#8fa1bd}
+  li b{display:block}li code{color:#6ce7be;font-size:11px;word-break:break-all}li button{float:right;font:inherit;font-size:11px;font-weight:700;background:transparent;color:#6ce7be;border:1px solid #2b3a55;border-radius:6px;padding:2px 7px;cursor:pointer}li small{color:#8fa1bd}
   .empty{color:#8fa1bd;border-style:dashed}
   .btn{display:block;width:100%;box-sizing:border-box;text-align:center;font:inherit;font-weight:700;border-radius:9px;padding:9px;margin-top:8px;cursor:pointer;border:1px solid #2b3a55;background:transparent;color:#e8eef7}
   .btn.primary{background:#6ce7be;border-color:#6ce7be;color:#0b1220}
@@ -34,6 +34,19 @@
   </div>
   <h2>RECENT ALIASES</h2>
   <ul id="list"></ul>
+  <h2>CREDENTIAL VAULT <span id="vaultState" style="color:#f5c26b"></span></h2>
+  <div id="vaultBox">
+    <p id="vaultHelp" style="margin:0 0 8px;color:#8fa1bd;font-size:11.5px"></p>
+    <form id="vaultForm">
+      <input id="master" type="password" autocomplete="off" placeholder="Master password (12+ characters)" style="width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #2b3a55;background:#101828;color:#e8eef7">
+      <button class="btn" id="vaultSubmit" type="submit"></button>
+    </form>
+    <div id="vaultOpen" style="display:none">
+      <button class="btn" id="lock">Lock vault</button>
+      <button class="btn" id="export">Export encrypted backup</button>
+    </div>
+    <p id="vaultMsg" role="status" style="margin:6px 0 0;font-size:11.5px;color:#f3a0a0;min-height:14px"></p>
+  </div>
   <button class="btn primary" id="dashboard">Open dashboard</button>
   <button class="btn" id="testpage">Open signup test page</button>
   <button class="btn" id="options">Alias provider &amp; options</button>

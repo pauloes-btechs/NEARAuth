@@ -1,8 +1,8 @@
 /* NEARAuth content script (Manifest V3).
  *
  * What it does:  offers a private demo alias on signup email fields, then offers a strong password.
- * What it never does: submit forms, read existing field values, or store / transmit passwords.
- * Everything stays in local demo storage (chrome.storage.local, or localStorage in in-page preview mode).
+ * What it never does: submit forms, read existing field values, or transmit passwords off the device.
+ * A generated password is handed once to the background vault (write-only) and stored only as AES-GCM ciphertext.
  */
 (function () {
   'use strict';
@@ -120,6 +120,7 @@
   var anchor = null;        // input the card is attached to
   var current = null;       // account record created in this page session
   var dismissed = new WeakSet();
+  var vaultNote = '';
 
   function place() {
     if (!anchor || !anchor.isConnected) return hide();
@@ -156,7 +157,7 @@
     render('<p>Alias filled. Want a strong, unique password for this site too?</p>' +
       '<div class="row"><button class="act primary" data-act="password">Generate Password</button>' +
       '<button class="act ghost" data-act="close">No thanks</button></div>' +
-      '<p class="note">Prototype: the password is filled into the form only. It is not saved or sent anywhere.</p>');
+      '<p class="note">The password is filled into the form and, if your NEARAuth vault is unlocked, stored encrypted on this device. It is never sent anywhere.</p>');
   }
 
   function done(el, withPassword) {
@@ -167,7 +168,8 @@
       (current.routable ? '<p class="note">Real forwarding alias created with ' + esc(current.providerId) + '.</p>'
         : current.fallbackReason ? '<p class="note">Your alias provider failed (' + esc(current.fallbackReason) + '), so this is a demo alias that cannot receive email.</p>' : '') +
       '<div class="row"><button class="act ghost" data-act="close">Done</button></div>' +
-      '<p class="note">Saved to local demo storage. Open the NEARAuth dashboard to see this account.</p>');
+      (withPassword && vaultNote ? '<p class="note">' + esc(vaultNote) + '</p>' : '') +
+      '<p class="note">Open the NEARAuth dashboard to see this account.</p>');
   }
 
   function saveAccount(patch) {
@@ -215,8 +217,16 @@
     if (act === 'password') {
       var secret = Gen.password(20);
       passwordFields(el).forEach(function (p) { fill(p, secret); }); // also fills "confirm password"
-      secret = null;
-      saveAccount({ credentials: 'generated-not-stored' }).then(function () { done(el, true); });
+      // Hand the password to the background vault (write-only). It is stored only if the vault is unlocked.
+      ask({ type: 'vault.save', accountId: current.id, alias: current.alias, secret: secret }).then(function (r) {
+        secret = null;
+        var saved = !!(r && r.ok && r.saved);
+        vaultNote = saved ? 'Password encrypted in your NEARAuth vault.'
+          : (r && r.reason === 'locked') ? 'Vault is locked, so the password was not saved. Unlock it from the NEARAuth toolbar button.'
+          : PREVIEW ? 'Preview mode: the password is not saved.'
+          : 'No vault yet, so the password was not saved. Set a master password from the NEARAuth toolbar button.';
+        return saveAccount({ credentials: saved ? 'vault-encrypted' : 'generated-not-stored' });
+      }).then(function () { done(el, true); });
     }
   });
 
