@@ -6,8 +6,12 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test",
     "lint": "node --check extension/content.js && node --check extension/popup.js && node --check extension/lib/generators.js",
     "build:zip": "mkdir -p downloads && rm -f downloads/nearauth-extension.zip && cd extension && zip -qr ../downloads/nearauth-extension.zip .",
     "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
   }
 }

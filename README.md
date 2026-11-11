@@ -36,10 +36,25 @@ No extension installed? The test page has an **in-page preview** button that run
 | Exposure detection | **Simulated** scenario; no inbound mail is processed |
 | Email forwarding, settings marked "planned", mobile apps | **Not implemented** |
 
+## Browser tests
+
+Install the dependencies and Playwright's Chromium browser, then run the browser tests:
+
+```sh
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The tests are in `tests/playwright/`. GitHub Actions runs the unit tests, lint checks,
+and Playwright tests on pushes and pull requests. The custom reporter in `reporters/`
+prints each test result and a summary to the console.
+
 ## Develop
 
 ```bash
 npm test            # unit tests (Node 20+, no dependencies)
+npm run test:e2e    # Playwright browser tests
 npm run lint        # syntax checks
 npm run build:zip   # downloads/nearauth-extension.zip
 npm run serve       # http://localhost:8080  (dashboard + demo/signup.html)
