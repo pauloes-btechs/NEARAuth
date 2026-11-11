@@ -23,8 +23,13 @@ on:
           - deploy-and-init   # first deployment: upload code and call new(owner = account)
           - deploy-only       # upgrade code on an already-initialised contract
           - anchor-only       # just anchor a root
+          - add-anchor-key    # register a browser-generated key that may ONLY call commit()
       root:
         description: "Merkle root to anchor (64 hex chars, from the dashboard's Batch anchor panel). Leave empty to skip."
+        required: false
+        type: string
+      public_key:
+        description: "add-anchor-key only: public key shown in the dashboard's Settings (ed25519:...)"
         required: false
         type: string
       leaf_count:
@@ -49,6 +54,7 @@ jobs:
       MODE: ${{ inputs.mode }}
       ROOT: ${{ inputs.root }}
       LEAF_COUNT: ${{ inputs.leaf_count }}
+      PUBLIC_KEY: ${{ inputs.public_key }}
       NETWORK: testnet
     steps:
       - uses: actions/checkout@v4
@@ -61,6 +67,9 @@ jobs:
             [[ "$LEAF_COUNT" =~ ^[1-9][0-9]{0,8}$ ]] || { echo "::error::leaf_count must be a positive integer"; exit 1; }
           elif [ "$MODE" = "anchor-only" ]; then
             echo "::error::anchor-only needs a root"; exit 1
+          fi
+          if [ "$MODE" = "add-anchor-key" ]; then
+            [[ "$PUBLIC_KEY" =~ ^ed25519:[1-9A-HJ-NP-Za-km-z]{43,44}$ ]] || { echo "::error::public_key must look like ed25519:<base58>"; exit 1; }
           fi
 
       - name: Load signing key from secret
@@ -85,12 +94,12 @@ jobs:
           "$HOME/.cargo/bin/near" --version
 
       - name: Contract unit tests
-        if: env.MODE != 'anchor-only'
+        if: startsWith(env.MODE, 'deploy')
         working-directory: contracts/audit-ledger
         run: cargo test --locked
 
       - name: Build Wasm with cargo-near
-        if: env.MODE != 'anchor-only'
+        if: startsWith(env.MODE, 'deploy')
         working-directory: contracts/audit-ledger
         run: |
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/latest/download/cargo-near-installer.sh | sh
@@ -113,6 +122,15 @@ jobs:
         if: env.MODE == 'deploy-only'
         run: |
           near contract deploy "$ACCOUNT_ID" use-file "$WASM" without-init-call \
+            network-config "$NETWORK" \
+            sign-with-plaintext-private-key "$NEAR_PRIV" send
+
+      - name: Register browser anchor key (function-call access to commit only)
+        if: env.MODE == 'add-anchor-key'
+        run: |
+          near account add-key "$ACCOUNT_ID" grant-function-call-access --allowance '1 NEAR' \
+            --contract-account-id "$ACCOUNT_ID" --function-names 'commit' \
+            use-manually-provided-public-key "$PUBLIC_KEY" \
             network-config "$NETWORK" \
             sign-with-plaintext-private-key "$NEAR_PRIV" send
 
