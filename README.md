@@ -16,6 +16,18 @@ If the link is not live, in this repository go to **Settings → Pages → Build
 
 Open `index.html` in a browser. No build, packages, accounts, or credentials are required.
 
+## Run browser tests
+
+Install the project dependencies and Playwright's Chromium browser, then run the test suite:
+
+```sh
+npm install
+npx playwright install chromium
+npm test
+```
+
+The Playwright tests are in `tests/playwright/`.
+
 ## Presentation guidance
 
 This is an **interactive UI simulation**. Illustrative aliases do **not** receive emails. Exposure events are synthetic examples. The NEAR integration is not live and no transactions are sent on-chain. Do not enter actual passwords or private account details.
