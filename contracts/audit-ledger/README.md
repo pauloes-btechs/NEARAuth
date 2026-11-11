@@ -1,6 +1,6 @@
 # NEARAuth audit ledger contract
 
-Stores Merkle roots of batches of audit-event commitments. **Status: written and unit-tested (`cargo test`, 6 tests); a plain Wasm build passes in CI; not deployed to any network yet.**
+Stores Merkle roots of batches of audit-event commitments. **Status: deployed to NEAR Testnet at [`nearauth-ledger.testnet`](https://testnet.nearblocks.io/address/nearauth-ledger.testnet) on 2026-11-11.** Deploy + init: transaction `F2wYBs58DwGUhhMNubbFoiNPbmQUSn2vvAn1DECDd9Xf`. First anchored root (5 events, block 277274812): transaction `GXqgLXYN6zuAKrEp3pj3HfpWmeFegTpxKx712RkecVgn`. Testnet only; unaudited.
 
 | Method | Kind | Who | Purpose |
 |---|---|---|---|
@@ -19,7 +19,7 @@ Stores Merkle roots of batches of audit-event commitments. **Status: written and
 
 ## Deploy to Testnet with GitHub Actions
 
-The workflow `.github/workflows/near-deploy.yml` builds the contract with cargo-near, deploys it, optionally anchors one Merkle root, and reads the result back. It only accepts `.testnet` accounts. **It has not been run yet** — expect to fix a step or two on the first run.
+The workflow `.github/workflows/near-deploy.yml` builds the contract with cargo-near, deploys it, optionally anchors one Merkle root, and reads the result back. It only accepts `.testnet` accounts. It has completed one successful `deploy-and-init` run with an anchor; `deploy-only` and `anchor-only` modes have not been exercised.
 
 **1. Create a Testnet account (once, on your machine).** Needs Node.js; pick your own name.
 
@@ -63,6 +63,5 @@ cd contracts/audit-ledger && cargo near deploy     # interactive; init call `new
 ```
 
 ## Not done yet
-- First real run of the deploy workflow; Testnet deployment.
 - Relayer service that batches commitments from many users and calls `commit` on a schedule.
 - Sandbox integration tests.

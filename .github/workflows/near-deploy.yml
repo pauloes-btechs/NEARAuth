@@ -107,14 +107,14 @@ jobs:
           near contract deploy "$ACCOUNT_ID" use-file "$WASM" \
             with-init-call new json-args "{\"owner\":\"$ACCOUNT_ID\"}" prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
             network-config "$NETWORK" \
-            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+            sign-with-plaintext-private-key "$NEAR_PRIV" send
 
       - name: Deploy code only
         if: env.MODE == 'deploy-only'
         run: |
           near contract deploy "$ACCOUNT_ID" use-file "$WASM" without-init-call \
             network-config "$NETWORK" \
-            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+            sign-with-plaintext-private-key "$NEAR_PRIV" send
 
       - name: Anchor Merkle root
         if: env.ROOT != ''
@@ -123,7 +123,7 @@ jobs:
           near contract call-function as-transaction "$ACCOUNT_ID" commit \
             json-args "{\"root\":\"$ROOT_LC\",\"leaf_count\":$LEAF_COUNT}" prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' \
             sign-as "$ACCOUNT_ID" network-config "$NETWORK" \
-            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+            sign-with-plaintext-private-key "$NEAR_PRIV" send
           echo "ROOT_LC=$ROOT_LC" >> "$GITHUB_ENV"
 
       - name: Read back from chain
