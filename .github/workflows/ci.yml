@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Lint (syntax check)
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Package extension
+        run: npm run build:zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nearauth-extension
+          path: downloads/nearauth-extension.zip
