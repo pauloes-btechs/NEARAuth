@@ -1,0 +1,141 @@
+name: NEAR Testnet — deploy & anchor
+
+# Manual only. Builds the audit-ledger contract, deploys it to a NEAR *Testnet* account you control,
+# and (optionally) anchors one Merkle root. The key is read from a repository secret and never printed.
+#
+# One-time setup (see contracts/audit-ledger/README.md):
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Name:  NEAR_TESTNET_CREDENTIALS_JSON
+#   Value: the full contents of ~/.near-credentials/testnet/<your-account>.testnet.json
+on:
+  workflow_dispatch:
+    inputs:
+      account_id:
+        description: "Testnet account to deploy to (e.g. nearauth-ledger.testnet)"
+        required: true
+        type: string
+      mode:
+        description: "What to do"
+        required: true
+        type: choice
+        default: deploy-and-init
+        options:
+          - deploy-and-init   # first deployment: upload code and call new(owner = account)
+          - deploy-only       # upgrade code on an already-initialised contract
+          - anchor-only       # just anchor a root
+      root:
+        description: "Merkle root to anchor (64 hex chars, from the dashboard's Batch anchor panel). Leave empty to skip."
+        required: false
+        type: string
+      leaf_count:
+        description: "Number of events in that batch"
+        required: false
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: near-testnet
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACCOUNT_ID: ${{ inputs.account_id }}
+      MODE: ${{ inputs.mode }}
+      ROOT: ${{ inputs.root }}
+      LEAF_COUNT: ${{ inputs.leaf_count }}
+      NETWORK: testnet
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate inputs
+        run: |
+          [[ "$ACCOUNT_ID" =~ ^[a-z0-9._-]{2,56}\.testnet$ ]] || { echo "::error::account_id must be a .testnet account — this workflow never touches mainnet"; exit 1; }
+          if [ -n "$ROOT" ]; then
+            [[ "$ROOT" =~ ^[0-9a-fA-F]{64}$ ]] || { echo "::error::root must be 64 hex characters"; exit 1; }
+            [[ "$LEAF_COUNT" =~ ^[1-9][0-9]{0,8}$ ]] || { echo "::error::leaf_count must be a positive integer"; exit 1; }
+          elif [ "$MODE" = "anchor-only" ]; then
+            echo "::error::anchor-only needs a root"; exit 1
+          fi
+
+      - name: Load signing key from secret
+        env:
+          CREDENTIALS_JSON: ${{ secrets.NEAR_TESTNET_CREDENTIALS_JSON }}
+        run: |
+          [ -n "$CREDENTIALS_JSON" ] || { echo "::error::Secret NEAR_TESTNET_CREDENTIALS_JSON is not set"; exit 1; }
+          PRIV=$(jq -er '.private_key // .secret_key' <<<"$CREDENTIALS_JSON") || { echo "::error::credentials JSON has no private_key"; exit 1; }
+          PUB=$(jq -er '.public_key' <<<"$CREDENTIALS_JSON") || { echo "::error::credentials JSON has no public_key"; exit 1; }
+          echo "::add-mask::$PRIV"
+          echo "::add-mask::${PRIV#ed25519:}"
+          FILE_ACCOUNT=$(jq -r '.account_id // empty' <<<"$CREDENTIALS_JSON")
+          if [ -n "$FILE_ACCOUNT" ] && [ "$FILE_ACCOUNT" != "$ACCOUNT_ID" ]; then
+            echo "::error::The secret belongs to a different account than the account_id input"; exit 1
+          fi
+          { echo "NEAR_PRIV=$PRIV"; echo "NEAR_PUB=$PUB"; } >> "$GITHUB_ENV"
+
+      - name: Install NEAR CLI
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/near-cli-rs/releases/latest/download/near-cli-rs-installer.sh | sh
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          "$HOME/.cargo/bin/near" --version
+
+      - name: Contract unit tests
+        if: env.MODE != 'anchor-only'
+        working-directory: contracts/audit-ledger
+        run: cargo test --locked
+
+      - name: Build Wasm with cargo-near
+        if: env.MODE != 'anchor-only'
+        working-directory: contracts/audit-ledger
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/latest/download/cargo-near-installer.sh | sh
+          rustup target add wasm32-unknown-unknown
+          cargo near --version
+          cargo near build non-reproducible-wasm --locked
+          WASM=$(ls "$PWD"/target/near/*.wasm | head -n 1)
+          ls -l "$WASM"
+          echo "WASM=$WASM" >> "$GITHUB_ENV"
+
+      - name: Deploy and initialise
+        if: env.MODE == 'deploy-and-init'
+        run: |
+          near contract deploy "$ACCOUNT_ID" use-file "$WASM" \
+            with-init-call new json-args "{\"owner\":\"$ACCOUNT_ID\"}" prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' \
+            network-config "$NETWORK" \
+            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+
+      - name: Deploy code only
+        if: env.MODE == 'deploy-only'
+        run: |
+          near contract deploy "$ACCOUNT_ID" use-file "$WASM" without-init-call \
+            network-config "$NETWORK" \
+            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+
+      - name: Anchor Merkle root
+        if: env.ROOT != ''
+        run: |
+          ROOT_LC=$(tr 'A-F' 'a-f' <<<"$ROOT")
+          near contract call-function as-transaction "$ACCOUNT_ID" commit \
+            json-args "{\"root\":\"$ROOT_LC\",\"leaf_count\":$LEAF_COUNT}" prepaid-gas '30.0 Tgas' attached-deposit '0 NEAR' \
+            sign-as "$ACCOUNT_ID" network-config "$NETWORK" \
+            sign-with-plaintext-private-key --signer-public-key "$NEAR_PUB" --signer-private-key "$NEAR_PRIV" send
+          echo "ROOT_LC=$ROOT_LC" >> "$GITHUB_ENV"
+
+      - name: Read back from chain
+        run: |
+          {
+            echo "## NEAR Testnet"
+            echo "- Contract account: \`$ACCOUNT_ID\` — https://testnet.nearblocks.io/address/$ACCOUNT_ID"
+            echo "- Dashboard: https://pauloes-btechs.github.io/NEARAuth/?contract=$ACCOUNT_ID#ledger"
+            echo '```'
+            echo "count():"; near contract call-function as-read-only "$ACCOUNT_ID" count json-args '{}' network-config "$NETWORK" now 2>&1 | tail -n 5
+            if [ -n "$ROOT_LC" ]; then
+              echo "get($ROOT_LC):"; near contract call-function as-read-only "$ACCOUNT_ID" get json-args "{\"root\":\"$ROOT_LC\"}" network-config "$NETWORK" now 2>&1 | tail -n 8
+            fi
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
