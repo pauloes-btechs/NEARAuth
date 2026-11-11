@@ -44,10 +44,11 @@ test('manifest is valid MV3 with minimal permissions and existing files', () => 
   for (const f of files) assert.ok(fs.existsSync(path.join(dir, f)), `${f} exists`);
 });
 
-test('content script never submits forms, stores passwords or makes network calls', () => {
+test('content script never submits forms, persists passwords itself or makes network calls', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8');
   assert.doesNotMatch(src, /\.submit\(|requestSubmit|fetch\(|XMLHttpRequest|sendBeacon|WebSocket/);
   assert.doesNotMatch(src, /saveAccount\(\{[^}]*(password|secret)\s*:/);
+  assert.doesNotMatch(src, /vault\.(reveal|unlock|export)/, 'content script must never read from the vault');
 });
 
 test('dashboard never invents NEAR transaction ids', () => {
