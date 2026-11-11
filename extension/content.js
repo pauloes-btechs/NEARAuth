@@ -47,6 +47,21 @@
     });
   }
 
+  /* ---------- Alias creation: background worker (provider adapter) with local demo fallback ---------- */
+  function ask(message) {
+    if (PREVIEW || !chrome.runtime || !chrome.runtime.sendMessage) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      try { chrome.runtime.sendMessage(message, function (r) { resolve(chrome.runtime.lastError ? null : r); }); }
+      catch (e) { resolve(null); }
+    });
+  }
+  function createAlias() {
+    return ask({ type: 'alias.create', site: location.hostname }).then(function (r) {
+      if (r && r.ok && r.alias) return r;
+      return { alias: Gen.alias(), providerId: 'demo', routable: false, remoteId: null };
+    });
+  }
+
   /* ---------- Field detection ---------- */
   function looksLikeEmail(el) {
     if (!(el instanceof HTMLInputElement) || el.disabled || el.readOnly) return false;
@@ -129,7 +144,11 @@
     show(el);
     render('<p>Keep your real inbox private on <b>' + esc(location.hostname || 'this page') + '</b>.</p>' +
       '<div class="row"><button class="act primary" data-act="alias">Generate Private Email</button></div>' +
-      '<p class="note">Demo alias on the reserved <b>.example</b> domain — it cannot receive email.</p>');
+      '<p class="note" id="provider-note">Demo alias on the reserved <b>.example</b> domain — it cannot receive email.</p>');
+    ask({ type: 'provider.status' }).then(function (st) {
+      var n = shadow.getElementById('provider-note');
+      if (n && st && st.routable) n.textContent = 'Creates a real forwarding alias on ' + st.domain + ' through ' + st.provider + '.';
+    });
   }
 
   function offerPassword(el) {
@@ -145,6 +164,8 @@
     render('<p><b>Protected identity created.</b> ' + (withPassword ? 'Alias and password are filled in.' : 'Alias is filled in.') +
       ' Review the form and submit it yourself — NEARAuth never submits for you.</p>' +
       '<div class="value">' + esc(current.alias) + '</div>' +
+      (current.routable ? '<p class="note">Real forwarding alias created with ' + esc(current.providerId) + '.</p>'
+        : current.fallbackReason ? '<p class="note">Your alias provider failed (' + esc(current.fallbackReason) + '), so this is a demo alias that cannot receive email.</p>' : '') +
       '<div class="row"><button class="act ghost" data-act="close">Done</button></div>' +
       '<p class="note">Saved to local demo storage. Open the NEARAuth dashboard to see this account.</p>');
   }
@@ -179,10 +200,14 @@
     var act = btn.dataset.act, el = anchor;
     if (act === 'close') { dismissed.add(el); return hide(); }
     if (act === 'alias') {
-      var a = Gen.alias();
-      fill(el, a);
-      el.dataset.nearauthFilled = '1';
-      saveAccount({ alias: a }).then(function () {
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+      createAlias().then(function (created) {
+        fill(el, created.alias);
+        el.dataset.nearauthFilled = '1';
+        return saveAccount({ alias: created.alias, providerId: created.providerId || 'demo', routable: !!created.routable,
+          remoteId: created.remoteId || null, fallbackReason: created.fallbackReason || null });
+      }).then(function () {
         var pw = passwordFields(el);
         if (pw.length) offerPassword(pw[0]); else done(el, false);
       });

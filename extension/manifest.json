@@ -1,21 +1,45 @@
 {
   "manifest_version": 3,
-  "name": "NEARAuth — Private Email Aliases (Demo)",
+  "name": "NEARAuth \u2014 Private Email Aliases (Demo)",
   "short_name": "NEARAuth",
-  "version": "0.1.0",
-  "description": "Demo prototype: generate a private, non-routable demo email alias and a strong password in signup forms. Nothing is submitted or uploaded.",
-  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "version": "0.2.0",
+  "description": "Prototype: generate a private email alias and a strong password in signup forms. Demo aliases by default; optional real forwarding through your own addy.io account.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_title": "NEARAuth",
     "default_popup": "popup.html",
-    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "file:///*"],
-      "js": ["lib/generators.js", "content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "file:///*"
+      ],
+      "js": [
+        "lib/generators.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "optional_host_permissions": [
+    "https://app.addy.io/*"
   ]
 }

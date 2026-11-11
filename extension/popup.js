@@ -37,6 +37,10 @@ async function render() {
 
 $('dashboard').addEventListener('click', () => chrome.tabs.create({ url: DASHBOARD_URL }));
 $('testpage').addEventListener('click', () => chrome.tabs.create({ url: TEST_PAGE_URL }));
+$('options').addEventListener('click', () => chrome.runtime.openOptionsPage());
+chrome.runtime.sendMessage({ type: 'provider.status' }, (st) => {
+  if (!chrome.runtime.lastError && st && st.routable) $('providerLine').textContent = `Aliases are created through ${st.provider} on ${st.domain} and forward real email.`;
+});
 $('enabled').addEventListener('change', (e) => chrome.storage.local.set({ [ENABLED_KEY]: e.target.checked }));
 $('clear').addEventListener('click', async () => {
   await chrome.storage.local.set({ [ACCOUNTS_KEY]: [] });
