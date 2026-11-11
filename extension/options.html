@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NEARAuth — Options</title>
+<style>
+  body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0b1220;color:#e8eef7}
+  main{max-width:620px;margin:0 auto;padding:32px 20px}
+  h1{font-size:22px}h2{font-size:15px;margin:26px 0 8px}
+  p,li{color:#a9b8d0}
+  fieldset{border:1px solid #1e2a40;border-radius:12px;padding:16px;margin:0 0 14px}
+  label{display:block;margin:10px 0 4px;font-weight:600}
+  label.radio{font-weight:400;display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+  input[type=text],input[type=password]{width:100%;box-sizing:border-box;font:inherit;padding:9px 11px;border-radius:8px;border:1px solid #2b3a55;background:#101828;color:#e8eef7}
+  button{font:inherit;font-weight:700;border-radius:9px;padding:10px 16px;cursor:pointer;border:1px solid #6ce7be;background:#6ce7be;color:#0b1220}
+  #status{margin-left:12px;color:#6ce7be}#status.err{color:#f3a0a0}
+  code{background:#101828;border-radius:5px;padding:1px 5px}
+  .warn{border:1px solid #5b4a22;background:#231c0c;color:#f5d9a0;border-radius:10px;padding:10px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>NEARAuth options</h1>
+  <h2>Alias provider</h2>
+  <fieldset>
+    <label class="radio"><input type="radio" name="provider" value="demo"> <span><b>Demo</b> — random aliases on <code>alias.nearauth.example</code>. Offline. They <b>cannot receive email</b>.</span></label>
+    <label class="radio"><input type="radio" name="provider" value="addy"> <span><b>addy.io</b> — real forwarding aliases created through your own addy.io account (open-source service). Requires an API token and one of your addy.io alias domains.</span></label>
+    <div id="addy">
+      <label for="domain">addy.io alias domain</label>
+      <input id="domain" type="text" placeholder="yourname.anonaddy.com or your custom domain" autocomplete="off" spellcheck="false">
+      <label for="token">addy.io API token</label>
+      <input id="token" type="password" placeholder="Create one in addy.io → Settings → API" autocomplete="off">
+      <p class="warn">Prototype notice: the token is kept in this browser's extension storage, unencrypted, and is sent only to <code>https://app.addy.io</code>. Use a token you can revoke. Chrome will ask you to allow access to app.addy.io when you save.</p>
+    </div>
+  </fieldset>
+  <button id="save">Save</button><span id="status" role="status"></span>
+  <h2>How this works</h2>
+  <ul>
+    <li>With <b>Demo</b>, nothing ever leaves your browser.</li>
+    <li>With <b>addy.io</b>, clicking “Generate Private Email” asks addy.io to create an alias described as “NEARAuth: &lt;site&gt;”. Mail to that alias is forwarded by addy.io to your default recipient.</li>
+    <li>If the provider call fails, NEARAuth falls back to a demo alias and tells you so in the form.</li>
+  </ul>
+</main>
+<script src="options.js"></script>
+</body>
+</html>
