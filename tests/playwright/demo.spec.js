@@ -10,6 +10,11 @@ test.beforeEach(async ({ page }) => {
 test('renders the overview and opens the identity vault', async ({ page }) => {
   await expect(page).toHaveTitle(/NEARAuth/);
   await expect(page.getByRole('heading', { name: /Your identity\.\s*Your rules\./ })).toBeVisible();
+  const demoVideo = page.locator('#demo-video');
+  await expect(demoVideo).toBeVisible();
+  await expect(demoVideo).toHaveAttribute('controls', '');
+  await expect(page.locator('#demo-video source')).toHaveAttribute('src', 'demo/demoMas.mp4');
+  await expect.poll(() => demoVideo.evaluate((video) => video.readyState)).toBeGreaterThan(0);
 
   await page.getByRole('button', { name: 'Identity vault' }).click();
 
