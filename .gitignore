@@ -3,3 +3,4 @@ downloads/*.zip
 .DS_Store
 playwright-report/
 test-results/
+contracts/*/target/
