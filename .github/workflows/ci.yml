@@ -23,3 +23,17 @@ jobs:
         with:
           name: nearauth-extension
           path: downloads/nearauth-extension.zip
+  contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/audit-ledger
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contract unit tests
+        run: cargo test --locked
+      - name: Wasm build (plain cargo; release builds should use cargo-near)
+        continue-on-error: true
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build --locked --target wasm32-unknown-unknown --release
