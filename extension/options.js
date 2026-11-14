@@ -1,18 +1,24 @@
 'use strict';
 const SETTINGS_KEY = 'nearauth_settings_v1';
 const ADDY_ORIGIN = 'https://app.addy.io/*';
+const SL_ORIGIN = 'https://app.simplelogin.io/*';
 const $ = (id) => document.getElementById(id);
 const radios = () => [...document.querySelectorAll('input[name=provider]')];
 const selected = () => radios().find((r) => r.checked).value;
 
 function say(text, err) { $('status').textContent = text; $('status').className = err ? 'err' : ''; }
-function sync() { $('addy').style.display = selected() === 'addy' ? 'block' : 'none'; }
+function sync() {
+  $('addy').style.display = selected() === 'addy' ? 'block' : 'none';
+  $('simplelogin').style.display = selected() === 'simplelogin' ? 'block' : 'none';
+}
 
 async function load() {
   const s = (await chrome.storage.local.get(SETTINGS_KEY))[SETTINGS_KEY] || { provider: 'demo' };
   radios().forEach((r) => { r.checked = r.value === (s.provider || 'demo'); });
   $('domain').value = (s.addy && s.addy.domain) || '';
   $('token').value = (s.addy && s.addy.token) || '';
+  $('slToken').value = (s.simplelogin && s.simplelogin.token) || '';
+  $('autoBlock').checked = !!s.autoBlock;
   sync();
 }
 
@@ -28,8 +34,18 @@ async function save() {
     if (!granted) return say('Access to app.addy.io was not granted — nothing saved.', true);
     settings.addy = { domain, token };
   }
+  if (provider === 'simplelogin') {
+    const token = $('slToken').value.trim();
+    if (!token) return say('Enter your SimpleLogin API key.', true);
+    const granted = await chrome.permissions.request({ origins: [SL_ORIGIN] });
+    if (!granted) return say('Access to app.simplelogin.io was not granted — nothing saved.', true);
+    settings.simplelogin = { token };
+    settings.autoBlock = $('autoBlock').checked;
+  }
   await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
-  say(provider === 'addy' ? 'Saved. New aliases will be created through addy.io.' : 'Saved. Using offline demo aliases.');
+  say(provider === 'addy' ? 'Saved. New aliases will be created through addy.io.'
+    : provider === 'simplelogin' ? 'Saved. New aliases will be created through SimpleLogin; the sender monitor runs every 5 minutes.'
+    : 'Saved. Using offline demo aliases.');
 }
 
 radios().forEach((r) => r.addEventListener('change', sync));

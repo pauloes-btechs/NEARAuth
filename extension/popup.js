@@ -84,6 +84,22 @@ $('export').addEventListener('click', async () => {
   URL.revokeObjectURL(url);
 });
 
+async function renderMonitor(note) {
+  const m = await send({ type: 'monitor.status' });
+  $('monitorBox').style.display = m && m.ok && m.supported ? 'block' : 'none';
+  if (!m || !m.ok || !m.supported) return;
+  const last = m.lastRun ? new Date(m.lastRun).toLocaleTimeString() : 'not yet';
+  $('monitorText').textContent = (note ? note + ' ' : '') + `${m.total} sender(s) classified · ${m.blocked} blocked · auto-block ${m.autoBlock ? 'on' : 'off'} · last check ${last}`
+    + (m.errors.length ? ` · ${m.errors.length} alias(es) could not be checked: ${m.errors[0].message}` : '');
+}
+$('monitorRun').addEventListener('click', async () => {
+  $('monitorRun').disabled = true;
+  const r = await send({ type: 'monitor.run' });
+  $('monitorRun').disabled = false;
+  renderMonitor(r && r.ok ? `Checked: ${r.found} new sender(s), ${r.flagged} unexpected, ${r.blocked} blocked.` : 'Check failed.');
+});
+renderMonitor();
+
 $('dashboard').addEventListener('click', () => chrome.tabs.create({ url: DASHBOARD_URL }));
 $('testpage').addEventListener('click', () => chrome.tabs.create({ url: TEST_PAGE_URL }));
 $('options').addEventListener('click', () => chrome.runtime.openOptionsPage());

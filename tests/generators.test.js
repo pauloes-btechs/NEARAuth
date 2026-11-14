@@ -37,10 +37,10 @@ test('manifest is valid MV3 with minimal permissions and existing files', () => 
   const dir = path.join(__dirname, '..', 'extension');
   const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
   assert.equal(m.manifest_version, 3);
-  assert.deepEqual(m.permissions, ['storage']);
+  assert.deepEqual(m.permissions, ['storage', 'alarms']);
   assert.equal(m.host_permissions, undefined);
   const files = [m.action.default_popup, m.background.service_worker, m.options_page, ...m.content_scripts[0].js, ...Object.values(m.icons)];
-  assert.deepEqual(m.optional_host_permissions, ['https://app.addy.io/*']);
+  assert.deepEqual(m.optional_host_permissions, ['https://app.addy.io/*', 'https://app.simplelogin.io/*']);
   for (const f of files) assert.ok(fs.existsSync(path.join(dir, f)), `${f} exists`);
 });
 
