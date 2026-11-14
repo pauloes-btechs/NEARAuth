@@ -33,6 +33,8 @@ No extension installed? The test page has an **in-page preview** button that run
 | Encrypted credential vault (AES-256-GCM, PBKDF2 600k, auto-lock) | **Functional** (unit + end-to-end tested). **Not audited**; no recovery |
 | Exposure classification engine (sender/org matching, evidence, confidence) | **Functional** as a library; the dashboard feeds it **simulated** inbound messages. No real mail is processed |
 | SHA-256 event commitments, Merkle batching, inclusion proofs, tamper detection | **Functional**, local to the browser |
+| Auto-anchor: every new event (including extension signups) is anchored a few seconds later | **Functional** when switched on in Settings, with a registered browser key and the dashboard open in a tab |
+| Automatic response to unexpected senders: pause alias, RFC 8058 one-click unsubscribe | **Decision logic functional and tested**; in the dashboard the inbound mail is simulated, so unsubscribe requests are prepared but **not sent**, and pausing affects dashboard state only |
 | NEAR Testnet connection | **Live, read-only**: latest final block over public RPC |
 | NEAR audit-ledger contract | **Written and unit-tested; not deployed.** No transaction is ever broadcast and no transaction ID is shown |
 | Inbound mail pipeline, notifications, relayer, sync backend | **Not implemented** |
