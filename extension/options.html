@@ -25,6 +25,13 @@
   <fieldset>
     <label class="radio"><input type="radio" name="provider" value="demo"> <span><b>Demo</b> — random aliases on <code>alias.nearauth.example</code>. Offline. They <b>cannot receive email</b>.</span></label>
     <label class="radio"><input type="radio" name="provider" value="addy"> <span><b>addy.io</b> — real forwarding aliases created through your own addy.io account (open-source service). Requires an API token and one of your addy.io alias domains.</span></label>
+    <label class="radio"><input type="radio" name="provider" value="simplelogin"> <span><b>SimpleLogin</b> — real forwarding aliases through your own SimpleLogin account, plus the <b>sender monitor</b>: NEARAuth checks which senders write to each alias and can block unexpected third parties.</span></label>
+    <div id="simplelogin">
+      <label for="slToken">SimpleLogin API key</label>
+      <input id="slToken" type="password" placeholder="SimpleLogin → API Keys" autocomplete="off">
+      <label class="radio" style="margin-top:12px"><input type="checkbox" id="autoBlock"> <span>Automatically block unexpected third-party senders (one sender on one alias; reversible in SimpleLogin). Without this, they are only flagged.</span></label>
+      <p class="warn">Prototype notice: the key is kept in this browser's extension storage, unencrypted, and is sent only to <code>https://app.simplelogin.io</code>. NEARAuth reads sender addresses per alias — never message content or your real mailbox. Chrome will ask you to allow access to app.simplelogin.io when you save.</p>
+    </div>
     <div id="addy">
       <label for="domain">addy.io alias domain</label>
       <input id="domain" type="text" placeholder="yourname.anonaddy.com or your custom domain" autocomplete="off" spellcheck="false">

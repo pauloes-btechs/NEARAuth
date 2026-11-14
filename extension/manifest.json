@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "NEARAuth \u2014 Private Email Aliases (Demo)",
   "short_name": "NEARAuth",
-  "version": "0.2.0",
-  "description": "Prototype: generate a private email alias and a strong password in signup forms. Demo aliases by default; optional real forwarding through your own addy.io account.",
+  "version": "0.3.0",
+  "description": "Prototype: generate a private email alias and a strong password in signup forms. Demo aliases by default; optional real forwarding and sender blocking through your own addy.io or SimpleLogin account.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -19,7 +19,8 @@
     }
   },
   "permissions": [
-    "storage"
+    "storage",
+    "alarms"
   ],
   "content_scripts": [
     {
@@ -40,6 +41,7 @@
   },
   "options_page": "options.html",
   "optional_host_permissions": [
-    "https://app.addy.io/*"
+    "https://app.addy.io/*",
+    "https://app.simplelogin.io/*"
   ]
 }

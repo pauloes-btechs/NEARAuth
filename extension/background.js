@@ -1,7 +1,7 @@
 /* NEARAuth background service worker.
  * The only place that talks to an alias provider over the network; content scripts just send messages. */
 'use strict';
-importScripts('lib/generators.js', 'lib/alias-provider.js', 'lib/vault.js');
+importScripts('lib/generators.js', 'lib/alias-provider.js', 'lib/vault.js', 'lib/detection.js', 'lib/monitor.js');
 
 const SETTINGS_KEY = 'nearauth_settings_v1';
 
@@ -28,7 +28,44 @@ async function sessionKey() {
 }
 const extensionOnly = (fn) => (msg, sender) => (isExtensionPage(sender) ? fn(msg, sender) : Promise.resolve({ ok: false, error: 'not_allowed' }));
 
+/* ---------- Sender monitor (SimpleLogin) ----------
+ * Every few minutes, ask the alias provider which addresses have written to each alias, classify new senders,
+ * and (if the user enabled it) block unexpected third parties. Sender metadata only; no message content. */
+const ACCOUNTS_KEY = 'nearauth_ext_accounts_v1';
+const MONITOR_KEY = 'nearauth_ext_inbound_v1';
+const MONITOR_ALARM = 'nearauth-sender-monitor';
+let monitorRunning = null;
+
+async function runMonitor() {
+  if (monitorRunning) return monitorRunning;
+  monitorRunning = (async () => {
+    const settings = await getSettings();
+    if (settings.provider !== 'simplelogin') return { ok: true, supported: false };
+    const stored = await chrome.storage.local.get([ACCOUNTS_KEY, MONITOR_KEY]);
+    const state = stored[MONITOR_KEY] || { events: [], seen: {} };
+    const out = await NEARAuthMonitor.scan({
+      accounts: stored[ACCOUNTS_KEY] || [], provider: NEARAuthProviders.createProvider(settings),
+      seen: state.seen, history: state.events, autoBlock: !!settings.autoBlock,
+    });
+    const next = { events: state.events.concat(out.events).slice(-100), seen: out.seen, lastRun: new Date().toISOString(), lastErrors: out.errors };
+    await chrome.storage.local.set({ [MONITOR_KEY]: next });
+    return { ok: true, supported: true, found: out.events.length, blocked: out.events.filter((e) => e.action === 'blocked').length,
+      flagged: out.events.filter((e) => e.classification === 'unexpected').length, errors: out.errors };
+  })();
+  try { return await monitorRunning; } finally { monitorRunning = null; }
+}
+
+chrome.alarms.create(MONITOR_ALARM, { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener((alarm) => { if (alarm.name === MONITOR_ALARM) runMonitor().catch(() => {}); });
+
 const handlers = {
+  'monitor.run': extensionOnly(() => runMonitor()),
+  'monitor.status': extensionOnly(async () => {
+    const settings = await getSettings();
+    const state = (await chrome.storage.local.get(MONITOR_KEY))[MONITOR_KEY] || { events: [] };
+    return { ok: true, supported: settings.provider === 'simplelogin', autoBlock: !!settings.autoBlock, lastRun: state.lastRun || null,
+      total: state.events.length, blocked: state.events.filter((e) => e.action === 'blocked').length, errors: state.lastErrors || [] };
+  }),
   async 'vault.status'() {
     const vault = await loadVault();
     return { ok: true, exists: !!vault, unlocked: !!vault && !!(await sessionKey()), entryIds: vault ? Object.keys(vault.entries) : [] };
@@ -87,7 +124,8 @@ const handlers = {
   },
   async 'provider.status'() {
     const s = await getSettings();
-    return { ok: true, provider: s.provider || 'demo', routable: s.provider === 'addy', domain: s.provider === 'addy' ? s.addy && s.addy.domain : NEARAuthGen.ALIAS_DOMAIN };
+    const real = s.provider === 'addy' || s.provider === 'simplelogin';
+    return { ok: true, provider: s.provider || 'demo', routable: real, domain: s.provider === 'addy' ? s.addy && s.addy.domain : s.provider === 'simplelogin' ? 'your SimpleLogin account' : NEARAuthGen.ALIAS_DOMAIN };
   },
 };
 

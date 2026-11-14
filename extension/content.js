@@ -12,6 +12,7 @@
   var Gen = globalThis.NEARAuthGen;
   var ACCOUNTS_KEY = 'nearauth_ext_accounts_v1';
   var ENABLED_KEY = 'nearauth_ext_enabled';
+  var MONITOR_KEY = 'nearauth_ext_inbound_v1';
   var hasChrome = typeof chrome !== 'undefined' && !!(chrome.storage && chrome.storage.local);
   var PREVIEW = !hasChrome; // loaded directly by the test page, without the extension installed
 
@@ -35,15 +36,16 @@
   var isDashboard = !!document.querySelector('meta[name="nearauth-dashboard"]');
   function syncDashboard() {
     if (!isDashboard || PREVIEW) return;
-    storage.get(ACCOUNTS_KEY, []).then(function (accounts) {
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+    Promise.all([storage.get(ACCOUNTS_KEY, []), storage.get(MONITOR_KEY, { events: [] })]).then(function (out) {
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(out[0]));
+      localStorage.setItem(MONITOR_KEY, JSON.stringify(out[1].events || [])); // classified sender events only
       window.dispatchEvent(new Event('nearauth:sync'));
     });
   }
   if (isDashboard && !PREVIEW) {
     syncDashboard();
     chrome.storage.onChanged.addListener(function (changes, area) {
-      if (area === 'local' && changes[ACCOUNTS_KEY]) syncDashboard();
+      if (area === 'local' && (changes[ACCOUNTS_KEY] || changes[MONITOR_KEY])) syncDashboard();
     });
   }
 

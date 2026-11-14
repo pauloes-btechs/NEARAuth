@@ -88,17 +88,106 @@
     };
   }
 
-  /* settings: { provider: 'demo' | 'addy', addy: { token, domain, format } } */
+  /* SimpleLogin — API reference: https://github.com/simple-login/app/blob/master/docs/api.md
+   * Auth header:  Authentication: <api key>
+   * POST   /api/alias/random/new?hostname=<site>   { note }   -> 201 { id, email, enabled, ... }
+   * GET    /api/aliases/:id                                    -> { id, email, enabled, ... }
+   * POST   /api/aliases/:id/toggle                             -> { enabled }          (a flip, not a set)
+   * DELETE /api/aliases/:id
+   * GET    /api/aliases/:id/contacts?page_id=0                 -> { contacts: [{ id, contact, block_forward, ... }] }
+   * POST   /api/contacts/:id/toggle                            -> { block_forward }    (a flip, not a set)   */
+  function SimpleLoginProvider(config) {
+    config = config || {};
+    var base = (config.baseUrl || 'https://app.simplelogin.io').replace(/\/+$/, '');
+    var doFetch = config.fetch || root.fetch;
+    if (!config.token) throw ProviderError('SimpleLogin API key is required', 'missing_token');
+    if (!/^https:\/\//.test(base) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base)) throw ProviderError('Provider base URL must use https', 'insecure_url');
+
+    function call(method, path, body) {
+      return doFetch(base + path, {
+        method: method,
+        headers: { 'Authentication': config.token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+      }).then(function (res) {
+        if (res.status === 401) throw ProviderError('SimpleLogin rejected the API key', 'unauthorized');
+        if (res.status === 403) throw ProviderError('SimpleLogin refused the request (plan limit or permissions)', 'forbidden');
+        if (res.status === 429) throw ProviderError('SimpleLogin rate limit reached', 'rate_limited');
+        if (!res.ok) throw ProviderError('SimpleLogin request failed with HTTP ' + res.status, 'http_' + res.status);
+        return res.json().catch(function () { return null; });
+      });
+    }
+    var id = function (v) { return encodeURIComponent(v); };
+
+    // Toggle endpoints flip the current value, so read first and only flip when needed.
+    function setEnabled(remoteId, want) {
+      return call('GET', '/api/aliases/' + id(remoteId)).then(function (alias) {
+        if (!alias || typeof alias.enabled !== 'boolean') throw ProviderError('SimpleLogin returned an unexpected response', 'bad_response');
+        if (alias.enabled === want) return;
+        return call('POST', '/api/aliases/' + id(remoteId) + '/toggle').then(function (r) {
+          if (!r || r.enabled !== want) throw ProviderError('SimpleLogin did not apply the change', 'bad_response');
+        });
+      });
+    }
+
+    return {
+      id: 'simplelogin',
+      label: 'SimpleLogin',
+      routable: true,
+      create: function (opts) {
+        opts = opts || {};
+        var q = opts.site ? '?hostname=' + encodeURIComponent(opts.site) : '';
+        var note = String(opts.description || ('NEARAuth: ' + (opts.site || 'unknown site'))).slice(0, 200);
+        return call('POST', '/api/alias/random/new' + q, { note: note }).then(function (a) {
+          if (!a || !a.email || a.id === undefined) throw ProviderError('SimpleLogin returned an unexpected response', 'bad_response');
+          return { alias: a.email, remoteId: a.id, providerId: 'simplelogin', routable: true };
+        });
+      },
+      pause: function (remoteId) { return setEnabled(remoteId, false); },
+      resume: function (remoteId) { return setEnabled(remoteId, true); },
+      remove: function (remoteId) { return call('DELETE', '/api/aliases/' + id(remoteId)).then(function () {}); },
+      /* Senders that have written to this alias: [{ id, address, blocked, lastSeen }] (first page, newest 20). */
+      senders: function (remoteId) {
+        return call('GET', '/api/aliases/' + id(remoteId) + '/contacts?page_id=0').then(function (r) {
+          if (!r || !Array.isArray(r.contacts)) throw ProviderError('SimpleLogin returned an unexpected response', 'bad_response');
+          return r.contacts.map(function (c) {
+            return { id: c.id, address: String(c.contact || '').toLowerCase(), blocked: !!c.block_forward, lastSeen: c.last_email_sent_timestamp || c.creation_timestamp || null };
+          });
+        });
+      },
+      /* Stop one sender reaching this alias; everyone else is unaffected. `sender` comes from senders(). */
+      blockSender: function (sender) {
+        if (sender.blocked) return Promise.resolve();
+        return call('POST', '/api/contacts/' + id(sender.id) + '/toggle').then(function (r) {
+          if (r && r.block_forward === true) return;
+          // Flipped the wrong way (it was already blocked elsewhere): flip back and report.
+          return call('POST', '/api/contacts/' + id(sender.id) + '/toggle').then(function () { throw ProviderError('SimpleLogin did not apply the block', 'bad_response'); });
+        });
+      },
+      unblockSender: function (sender) {
+        return call('POST', '/api/contacts/' + id(sender.id) + '/toggle').then(function (r) {
+          if (r && r.block_forward === false) return;
+          return call('POST', '/api/contacts/' + id(sender.id) + '/toggle').then(function () { throw ProviderError('SimpleLogin did not apply the unblock', 'bad_response'); });
+        });
+      }
+    };
+  }
+
+  /* settings: { provider: 'demo' | 'addy' | 'simplelogin', addy: { token, domain, format }, simplelogin: { token, baseUrl? } } */
   function createProvider(settings, deps) {
     settings = settings || {};
     if (settings.provider === 'addy') {
       var a = settings.addy || {};
       return AddyProvider({ token: a.token, domain: a.domain, format: a.format, fetch: deps && deps.fetch });
     }
+    if (settings.provider === 'simplelogin') {
+      var sl = settings.simplelogin || {};
+      return SimpleLoginProvider({ token: sl.token, baseUrl: sl.baseUrl, fetch: deps && deps.fetch });
+    }
     return DemoProvider();
   }
 
-  var api = { DemoProvider: DemoProvider, AddyProvider: AddyProvider, createProvider: createProvider, PROVIDER_ORIGINS: { addy: 'https://app.addy.io/*' } };
+  var api = { DemoProvider: DemoProvider, AddyProvider: AddyProvider, SimpleLoginProvider: SimpleLoginProvider, createProvider: createProvider,
+    PROVIDER_ORIGINS: { addy: 'https://app.addy.io/*', simplelogin: 'https://app.simplelogin.io/*' } };
   root.NEARAuthProviders = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
