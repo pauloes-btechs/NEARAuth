@@ -3,7 +3,7 @@ import type { Database } from '../db/pool.js';
 import { aliases, policies, senders, users, workflows, type AliasRow, type SenderRow } from '../db/repo.js';
 import type { Approvals } from '../approvals.js';
 import { recordAudit } from '../audit.js';
-import { READ_INTENTS, WRITE_INTENTS, INTENT_LABELS, parseByRules, type Intent } from '../intents.js';
+import { READ_INTENTS, WRITE_INTENTS, INTENT_LABELS, matchServicesExact, parseByRules, type Intent } from '../intents.js';
 import type { IntentModel } from '../llm.js';
 import type { Memory } from '../memory.js';
 import { evaluatePolicy, thirdPartyCategory, type ActionKind } from '../policy.js';
@@ -30,8 +30,6 @@ const NEEDS_SENDER: Intent[] = ['block_sender', 'unblock_sender', 'unsubscribe']
 const aliasRef = (a: AliasRow): AliasRef => ({ id: a.id, masked: maskAlias(a.alias_email), service: a.service_name, serviceDomain: a.service_domain, providerId: a.provider_id });
 const senderRef = (s: SenderRow): SenderRef => ({ id: s.id, address: s.sender_address, domain: s.sender_domain, blocked: s.blocked, classification: s.classification });
 const senderLabel = (s: SenderRow) => { const cat = thirdPartyCategory(s.sender_domain); return `${s.sender_address}${cat ? ` — looks like a ${cat}` : ''}`; };
-const GENERIC = new Set(['market', 'shop', 'store', 'forum', 'online', 'club', 'group', 'service', 'services', 'company', 'account', 'alias']);
-const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const stamp = (node: string) => ({ path: [node], timestamps: { [node]: new Date().toISOString() } });
 
 export function buildGraph(deps: GraphDeps, checkpointer: BaseCheckpointSaver) {
@@ -83,14 +81,7 @@ export function buildGraph(deps: GraphDeps, checkpointer: BaseCheckpointSaver) {
     if (want.aliasId) { alias = all.find((a) => a.id === want.aliasId) ?? null; method = 'selected id'; if (!alias) return { ...stamp('resolve_target'), errorCode: 'not_owned', explanation: 'That alias is not one of yours.' }; }
     if (!alias && state.mentions.emails.length) { alias = all.find((a) => state.mentions.emails.includes(a.alias_email.toLowerCase())) ?? null; method = 'exact alias email'; }
     if (!alias) {
-      // Exact: the full service name or domain appears; otherwise the alias whose distinctive name words appear most.
-      let hits = all.filter((a) => squash(text).includes(squash(a.service_name)) || text.includes(a.service_domain) || state.mentions.domains.includes(a.service_domain));
-      if (!hits.length) {
-        const words = new Set(text.split(/[^a-z0-9]+/));
-        const score = (a: AliasRow) => a.service_name.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !GENERIC.has(w) && words.has(w)).length;
-        const best = Math.max(0, ...all.map(score));
-        if (best > 0) hits = all.filter((a) => score(a) === best);
-      }
+      const hits = matchServicesExact(text, all.map((a) => ({ ...a, name: a.service_name, domain: a.service_domain })), state.mentions.domains);
       if (hits.length === 1) { alias = hits[0]; method = 'exact service name'; }
       else if (hits.length > 1) return ambiguous(hits.map((a) => ({ aliasId: a.id, label: `${a.service_name} — ${maskAlias(a.alias_email)}` })), calls);
     }

@@ -26,7 +26,9 @@
 | `extension/lib/vault.js` | PBKDF2 → AES-256-GCM vault primitives |
 | `extension/lib/detection.js` | Exposure classification (pure functions) |
 | `extension/lib/merkle.js` | Merkle batching and inclusion proofs |
-| `contracts/audit-ledger` | NEAR contract storing Merkle roots (not deployed) |
+| `contracts/audit-ledger` | NEAR contract storing Merkle roots (deployed on Testnet: `nearauth-ledger.testnet`) |
+| `agent/` | LangGraph.js agent service: workflows, policy, approvals, execution, verification, audit receipts — see [agent/README.md](../agent/README.md) |
+| `assistant.js` | Dashboard Privacy Assistant: graph visualisation, approval centre, history, policies, memory |
 
 Message boundary: content scripts may send `alias.create`, `provider.status`, `vault.status` and write-only `vault.save`. Everything that reads secrets (`vault.reveal`, `vault.unlock`, `vault.export`) is accepted only from the extension's own pages.
 

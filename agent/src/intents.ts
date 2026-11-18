@@ -54,3 +54,20 @@ export function parseByRules(text: string): ParsedRequest {
   const hit = RULES.find(([, re]) => re.test(forRules));
   return { intent: hit ? hit[0] : 'unknown', source: 'rules', mentionedEmails: emails, mentionedDomains: domains, normalizedText: t };
 }
+
+/* Exact service matching used by resolve_target: the full service name or domain appears in the request, or else the
+ * service whose distinctive name words appear most. Returns every tie, so callers can ask instead of guessing. */
+const GENERIC = new Set(['market', 'shop', 'store', 'forum', 'online', 'club', 'group', 'service', 'services', 'company', 'account', 'alias',
+  'bank', 'airlines', 'airline', 'library', 'photo', 'outfitters', 'lab', 'news', 'mail']);
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+export function matchServicesExact<T extends { name: string; domain: string }>(text: string, items: T[], mentionedDomains: string[] = []): T[] {
+  const t = text.toLowerCase();
+  let hits = items.filter((a) => squash(t).includes(squash(a.name)) || t.includes(a.domain) || mentionedDomains.includes(a.domain));
+  if (!hits.length) {
+    const words = new Set(t.split(/[^a-z0-9]+/));
+    const score = (a: T) => a.name.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !GENERIC.has(w) && words.has(w)).length;
+    const best = Math.max(0, ...items.map(score));
+    if (best > 0) hits = items.filter((a) => score(a) === best);
+  }
+  return hits;
+}
