@@ -16,6 +16,14 @@ Current security properties of the prototype:
 - The content script runs on all pages so it can find signup fields. It only reads field *attributes* to detect email/password inputs and never reads values it did not write.
 - The dashboard's NEAR connection is read-only public RPC; no keys exist anywhere in this repository.
 
+## Agent service (`agent/`)
+
+- Read-only and approval-driven by default. A provider write needs a single-use, expiring, HMAC-bound approval of the exact action hash, or a narrow standing policy (one alias, one sender domain, expiry; never for high-risk senders).
+- The language model (optional, local Ollama) can only choose an intent from a fixed list; it cannot call tools or authorize anything. Policy rules are deterministic.
+- Graph state and checkpoints hold references only (ids, masked aliases, hashes). Tests scan checkpoints, receipts and embeddings for the provider key and session token.
+- Postgres row-level security (forced) isolates users; the API checks workflow ownership and an origin allow-list, and uses bearer tokens stored as SHA-256 hashes.
+- Real-provider mode is refused unless the agent binds to a loopback address, because provider keys in the extension are not yet encrypted at rest. Full threat model and remediation plan: [docs/agent/THREAT_MODEL.md](docs/agent/THREAT_MODEL.md).
+
 ## Reporting a vulnerability
 
 Please **do not open a public issue**. Use GitHub's private reporting: *Security → Report a vulnerability* on this repository. Include reproduction steps and impact. Expect an acknowledgement within 7 days.

@@ -35,9 +35,11 @@ No extension installed? The test page has an **in-page preview** button that run
 | SHA-256 event commitments, Merkle batching, inclusion proofs, tamper detection | **Functional**, local to the browser |
 | Auto-anchor: every new event (including extension signups) is anchored a few seconds later | **Functional** when switched on in Settings, with a registered browser key and the dashboard open in a tab |
 | SimpleLogin provider + sender monitor: real aliases, per-alias sender check every 5 minutes, optional auto-block of unexpected third-party senders | **Functional against a mock of the SimpleLogin API** (unit + extension end-to-end tests). **Not yet run against a real SimpleLogin account** |
-| Automatic response to unexpected senders: pause alias, RFC 8058 one-click unsubscribe | **Decision logic functional and tested**; in the dashboard the inbound mail is simulated, so unsubscribe requests are prepared but **not sent**, and pausing affects dashboard state only |
+| Automatic response to unexpected senders: pause alias, RFC 8058 one-click unsubscribe | **Decision logic functional and tested**; requires a verifier-issued DKIM result (a claimed `dkimDomain` is ignored) and a URL that passes SSRF checks; in the dashboard the inbound mail is simulated, so unsubscribe requests are prepared but **not sent**, and pausing affects dashboard state only |
 | NEAR Testnet connection | **Live, read-only**: latest final block over public RPC |
-| NEAR audit-ledger contract | **Written and unit-tested; not deployed.** No transaction is ever broadcast and no transaction ID is shown |
+| NEAR audit-ledger contract | **Deployed on Testnet** (`nearauth-ledger.testnet`); roots anchored from one browser profile's function-call key. Unaudited |
+| Privacy Assistant agent (`agent/`, LangGraph.js): request → policy → approval → execute → verify → receipt | **Functional in simulation** (mock provider; 26 agent tests + browser E2E). Real SimpleLogin execution is opt-in, loopback-only, verified against a local mock server only |
+| Unsubscribe on the user's behalf | **Unsupported** until verified inbound headers exist; the agent offers sender blocking instead |
 | Inbound mail pipeline, notifications, relayer, sync backend | **Not implemented** |
 | iOS / Android apps | **Design only** ([docs/MOBILE.md](docs/MOBILE.md)) |
 
@@ -52,10 +54,13 @@ npm run serve       # http://localhost:8080  (dashboard + demo/signup.html)
 npm run test:e2e:demo # extension E2E (headless by default)
 PW_HEADED=1 PW_SLOW_MO=800 npm run test:e2e:demo # visible browser, slowed for demos
 node tests/e2e/vault.e2e.js  # encrypted-vault end-to-end run
+(cd agent && npm install && npm run demo)    # Privacy Assistant agent (simulation), then open /#assistant
+(cd agent && npm run typecheck && npm test)  # agent tests
+npm run test:e2e:assistant                   # assistant browser E2E (needs npm run serve + agent deps)
 (cd contracts/audit-ledger && cargo test)   # NEAR contract unit tests
 ```
 
-Docs: [Architecture](docs/ARCHITECTURE.md) · [Alias backend decision](docs/decisions/0001-alias-forwarding.md) · [NEAR contract](contracts/audit-ledger/README.md) · [Mobile design](docs/MOBILE.md) · [Roadmap & suggested issues](docs/ROADMAP.md) · [Maintainers guide](docs/MAINTAINERS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+Docs: [Agent service](agent/README.md) · [Agent threat model](docs/agent/THREAT_MODEL.md) · [Pre-upgrade audit](docs/agent/CURRENT_STATE.md) · [Architecture](docs/ARCHITECTURE.md) · [Alias backend decision](docs/decisions/0001-alias-forwarding.md) · [NEAR contract](contracts/audit-ledger/README.md) · [Mobile design](docs/MOBILE.md) · [Roadmap & suggested issues](docs/ROADMAP.md) · [Maintainers guide](docs/MAINTAINERS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ## License
 

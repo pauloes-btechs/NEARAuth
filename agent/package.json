@@ -1,0 +1,38 @@
+{
+  "name": "@nearauth/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NEARAuth agent service: LangGraph.js privacy workflows with deterministic policy, human approval and audited execution",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/db/migrate.ts",
+    "pair": "tsx src/cli/pair.ts",
+    "demo": "tsx src/cli/demo.ts",
+    "eval:retrieval": "tsx src/cli/eval-retrieval.ts",
+    "graph": "tsx src/cli/graph.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test --test-concurrency=1 tests/*.test.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite-pgvector": "^0.0.17",
+    "@electric-sql/pglite-socket": "^0.2.19",
+    "@langchain/core": "^1.4.1",
+    "@langchain/langgraph": "^1.7.5",
+    "@langchain/langgraph-checkpoint-postgres": "^1.1.4",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

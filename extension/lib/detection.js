@@ -44,7 +44,27 @@
       'Ask the original service which partners or processors received your address.', 'Keep this event in the audit ledger as dated evidence.']
   };
 
-  /* event:   { alias, from, dkimDomain?, spf?: 'pass'|'fail'|'none', receivedAt? }
+  /* ---------- Trusted authentication results ----------
+   * Only a component that actually verified a message (checked the DKIM signature against the signer's DNS key,
+   * evaluated SPF) may mint one of these. Plain objects — a `dkimDomain` string in JSON, a header that *claims*
+   * to be signed — are never accepted as proof. Untrusted signals can lower trust (a claimed SPF fail), never raise it. */
+  var TRUSTED_AUTH = typeof WeakSet !== 'undefined' ? new WeakSet() : null;
+  function trustedAuthResult(r) {
+    r = r || {};
+    if (!r.verifier || typeof r.verifier !== 'string') throw new Error('trustedAuthResult needs the name of the verifier that checked the message');
+    if (['pass', 'fail', 'none'].indexOf(r.dkim) === -1) throw new Error('trustedAuthResult: dkim must be pass, fail or none');
+    var out = Object.freeze({
+      verifier: r.verifier, dkim: r.dkim, dkimDomain: r.dkim === 'pass' ? registrableDomain(r.dkimDomain || '') : '',
+      spf: ['pass', 'fail', 'none'].indexOf(r.spf) === -1 ? 'none' : r.spf,
+      signedHeaders: Object.freeze((r.signedHeaders || []).map(function (h) { return String(h).toLowerCase(); }))
+    });
+    if (out.dkim === 'pass' && !out.dkimDomain) throw new Error('trustedAuthResult: a DKIM pass needs the signing domain');
+    if (TRUSTED_AUTH) TRUSTED_AUTH.add(out);
+    return out;
+  }
+  function isTrustedAuth(x) { return !!(TRUSTED_AUTH && x && typeof x === 'object' && TRUSTED_AUTH.has(x)); }
+
+  /* event:   { alias, from, auth?: trustedAuthResult(...), dkimDomain? (claimed only, ignored), spf? (claimed), receivedAt? }
    * context: { account: { name, domain }, history?: previous results for the same alias }                */
   function classify(event, context) {
     var account = (context && context.account) || {};
@@ -52,8 +72,11 @@
     var sender = parseSender(event.from);
     var senderDomain = registrableDomain(sender.address.split('@')[1] || '');
     var accountDomain = registrableDomain(account.domain || '');
-    var dkim = registrableDomain(event.dkimDomain || '');
-    var authenticated = !!dkim || event.spf === 'pass';
+    var auth = isTrustedAuth(event.auth) ? event.auth : null;
+    var dkim = auth && auth.dkim === 'pass' ? auth.dkimDomain : '';
+    var spfPass = !!auth && auth.spf === 'pass';
+    var spfFail = auth ? auth.spf === 'fail' : event.spf === 'fail'; // a claimed failure can only lower trust
+    var authenticated = !!dkim || spfPass;
     var tokens = brandTokens(account);
     var evidence = [];
     var out = { alias: event.alias, sender: sender.address, senderName: sender.name, senderDomain: senderDomain, accountDomain: accountDomain,
@@ -67,6 +90,9 @@
     }
     function note(signal, detail) { evidence.push({ signal: signal, detail: detail }); }
 
+    if (!auth && (event.dkimDomain || event.spf === 'pass')) {
+      note('claimed-auth-ignored', 'The message claims authentication results, but none came from a trusted verifier, so they were ignored.');
+    }
     note('alias-issued-to', 'This alias was only given to ' + (account.name || accountDomain) + ' (' + accountDomain + ').');
 
     if (!senderDomain) { note('no-sender', 'The message has no usable sender address.'); return finish('unverified', 'none', 'Sender could not be determined.'); }
@@ -88,7 +114,7 @@
       note('known-processor', senderDomain + ' is a bulk mail provider and the sender name references "' + brandHit + '".');
       return finish('processor', 'medium', 'Probably the original service using a mail provider.');
     }
-    if (!authenticated && event.spf === 'fail') {
+    if (!authenticated && spfFail) {
       note('auth-failed', 'SPF failed and there is no DKIM signature, so the sender address may be forged.');
       return finish('unverified', 'low', 'Unauthenticated message; the visible sender cannot be trusted.');
     }
@@ -132,7 +158,8 @@
     return result;
   }
 
-  var api = { registrableDomain: registrableDomain, parseSender: parseSender, classify: classify, correlate: correlate, investigate: investigate, PROCESSORS: PROCESSORS };
+  var api = { registrableDomain: registrableDomain, parseSender: parseSender, classify: classify, correlate: correlate, investigate: investigate, PROCESSORS: PROCESSORS,
+    trustedAuthResult: trustedAuthResult, isTrustedAuth: isTrustedAuth };
   root.NEARAuthDetection = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

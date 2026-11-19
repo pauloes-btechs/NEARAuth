@@ -1,0 +1,30 @@
+# Local stack: Postgres 16 + pgvector and the agent (simulation mode).
+#   docker compose -f agent/docker-compose.yml up --build
+#   docker compose -f agent/docker-compose.yml exec agent npx tsx src/cli/pair.ts --user demo --seed-demo
+# Real-provider mode is refused when the agent binds to a non-loopback address (THREAT_MODEL R2), so this
+# container stack always runs the mock provider. Use `npm start` on the host for SimpleLogin.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: nearauth
+      POSTGRES_PASSWORD: nearauth-local-only
+      POSTGRES_DB: nearauth_agent
+    ports: ["127.0.0.1:54329:5432"]
+    volumes: ["nearauth-pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nearauth -d nearauth_agent"]
+      interval: 3s
+      retries: 20
+  agent:
+    build: { context: .., dockerfile: agent/Dockerfile }
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql://nearauth:nearauth-local-only@db:5432/nearauth_agent
+      NEARAUTH_PROVIDER: mock
+      NEARAUTH_LLM: ${NEARAUTH_LLM:-off}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      NEARAUTH_ALLOWED_ORIGINS: https://pauloes-btechs.github.io,http://localhost:8080
+    ports: ["127.0.0.1:8787:8787"]
+volumes:
+  nearauth-pg: {}
