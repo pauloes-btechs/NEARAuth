@@ -27,13 +27,14 @@ const isLoopback = (h: string) => ['127.0.0.1', '::1', 'localhost'].includes(h);
 
 /* Reads (or creates once) a random approval-signing key under the data directory, so approvals survive restarts. */
 function loadApprovalKey(dataDir: string, env: NodeJS.ProcessEnv): Buffer {
-  if (env.NEARAUTH_APPROVAL_KEY) {
-    const k = Buffer.from(env.NEARAUTH_APPROVAL_KEY, 'base64');
-    if (k.length < 32) throw new Error('NEARAUTH_APPROVAL_KEY must be at least 32 bytes, base64-encoded');
+  const file = resolve(dataDir, 'approval.key');
+  const stored = env.NEARAUTH_APPROVAL_KEY || (existsSync(file) ? readFileSync(file, 'utf8').trim() : null);
+  if (stored) {
+    // An empty or truncated key file would otherwise sign approvals with a guessable key.
+    const k = Buffer.from(stored, 'base64');
+    if (k.length < 32) throw new Error(`Approval key (NEARAUTH_APPROVAL_KEY or ${file}) must be at least 32 bytes, base64-encoded`);
     return k;
   }
-  const file = resolve(dataDir, 'approval.key');
-  if (existsSync(file)) return Buffer.from(readFileSync(file, 'utf8').trim(), 'base64');
   mkdirSync(dirname(file), { recursive: true });
   const k = randomBytes(32);
   writeFileSync(file, k.toString('base64'), { mode: 0o600 });
