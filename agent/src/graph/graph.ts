@@ -3,7 +3,7 @@ import type { Database } from '../db/pool.js';
 import { aliases, policies, senders, users, workflows, type AliasRow, type SenderRow } from '../db/repo.js';
 import type { Approvals } from '../approvals.js';
 import { recordAudit } from '../audit.js';
-import { READ_INTENTS, WRITE_INTENTS, INTENT_LABELS, matchServicesExact, parseByRules, type Intent } from '../intents.js';
+import { READ_INTENTS, INTENT_LABELS, matchServicesExact, parseByRules, type Intent } from '../intents.js';
 import type { IntentModel } from '../llm.js';
 import type { Memory } from '../memory.js';
 import { evaluatePolicy, thirdPartyCategory, type ActionKind } from '../policy.js';
@@ -410,6 +410,5 @@ export function buildGraph(deps: GraphDeps, checkpointer: BaseCheckpointSaver) {
     .addEdge('explain_limitation', 'finalize').addEdge('deny', 'finalize').addEdge('return_findings', 'finalize')
     .addEdge('record_decline', 'finalize').addEdge('already_done', 'finalize').addEdge('finalize', END);
 
-  void WRITE_INTENTS;
   return g.compile({ checkpointer });
 }
