@@ -13,7 +13,7 @@
                                                                         NEAR Testnet public RPC
 ```
 
-- **Storage.** The extension keeps `nearauth_ext_accounts_v1` in `chrome.storage.local`. On pages carrying `<meta name="nearauth-dashboard">`, the content script mirrors that list into the page's `localStorage` and fires a `nearauth:sync` event; the dashboard merges it into its own state (`nearauth_demo_v1`).
+- **Storage.** The extension keeps `nearauth_ext_accounts_v1` in `chrome.storage.local`. On pages carrying `<meta name="nearauth-dashboard">` and served from an allow-listed dashboard origin (GitHub Pages or `localhost:8080`), the content script mirrors that list into the page's `localStorage` and fires a `nearauth:sync` event; the dashboard merges it into its own state (`nearauth_demo_v1`).
 - **In-page preview.** `demo/signup.html` can load the same `content.js` directly; without `chrome.storage` it falls back to `localStorage`.
 - **Audit ledger.** Each event `{id,label,kind,ts,nonce}` is hashed with SHA-256 in the browser. The commitment is stored with the height/hash of the latest final NEAR Testnet block observed at commit time. Verification recomputes hashes and flags mismatches. Nothing is written on-chain.
 
