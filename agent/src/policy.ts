@@ -115,8 +115,7 @@ export function evaluatePolicy(i: PolicyInput): PolicyDecision {
   const supported = !!cap && i.provider.capabilities[cap];
   if (!rule('P5-capability', supported, supported ? `${i.provider.id} supports ${i.action}` : `${i.provider.id} cannot ${i.action}`)) return end('unsupported', { requiresApproval: false });
 
-  let risk: RiskTier = i.action === 'pause_alias' ? 'medium' : 'medium';
-  if (i.action === 'resume_alias' || i.action === 'unblock_sender') risk = 'low';
+  let risk: RiskTier = i.action === 'resume_alias' || i.action === 'unblock_sender' ? 'low' : 'medium';
 
   if (i.action === 'block_sender') {
     const senderDomain = Detection.registrableDomain(i.sender!.sender_domain);
