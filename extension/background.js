@@ -47,7 +47,9 @@ async function runMonitor() {
       accounts: stored[ACCOUNTS_KEY] || [], provider: NEARAuthProviders.createProvider(settings),
       seen: state.seen, history: state.events, autoBlock: !!settings.autoBlock,
     });
-    const next = { events: state.events.concat(out.events).slice(-100), seen: out.seen, lastRun: new Date().toISOString(), lastErrors: out.errors };
+    // A retried sender reappears with the same id: keep only its latest result.
+    const kept = state.events.filter((e) => !out.events.some((n) => n.id === e.id));
+    const next = { events: kept.concat(out.events).slice(-100), seen: out.seen, lastRun: new Date().toISOString(), lastErrors: out.errors };
     await chrome.storage.local.set({ [MONITOR_KEY]: next });
     return { ok: true, supported: true, found: out.events.length, blocked: out.events.filter((e) => e.action === 'blocked').length,
       flagged: out.events.filter((e) => e.classification === 'unexpected').length, errors: out.errors };
