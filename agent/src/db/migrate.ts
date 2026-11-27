@@ -15,7 +15,8 @@ export async function migrate(db: Database): Promise<string[]> {
     await c.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_ROLE}') THEN CREATE ROLE ${APP_ROLE} NOLOGIN; END IF; END $$`);
     await c.query(`GRANT ${APP_ROLE} TO CURRENT_USER`).catch(() => {}); // superusers already may SET ROLE
     const done = new Set((await c.query('SELECT version FROM schema_migrations')).rows.map((r) => r.version));
-    for (const file of readdirSync(DIR).filter((f) => f.endsWith('.sql')).sort()) {
+    // Numbered files only: macOS writes ._001_core.sql metadata files on exFAT drives.
+    for (const file of readdirSync(DIR).filter((f) => /^\d+_.+\.sql$/.test(f)).sort()) {
       const version = file.replace(/\.sql$/, '');
       if (done.has(version)) continue;
       await c.query('BEGIN');
