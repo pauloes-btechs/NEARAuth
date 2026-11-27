@@ -115,6 +115,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`  model:    ${svc.intentModelName ?? 'off — deterministic rules only'}`);
     console.log(`  origins:  ${cfg.allowedOrigins.join(', ')}`);
   });
+  const retention = () => svc.applyRetention().catch((e) => console.error('[agent] retention failed:', (e as Error).message));
+  void retention();
+  setInterval(retention, 6 * 60 * 60 * 1000).unref();
   const stop = async () => { server.close(); await svc.close(); process.exit(0); };
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
 }
