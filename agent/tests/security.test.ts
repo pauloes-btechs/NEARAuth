@@ -221,6 +221,16 @@ test('real provider mode refuses to start on a non-loopback address', async () =
   assert.throws(() => loadConfig({ NEARAUTH_PROVIDER: 'simplelogin', NEARAUTH_DATA_DIR: '/tmp/x' } as NodeJS.ProcessEnv), /SIMPLELOGIN_API_KEY/);
 });
 
+test('a truncated approval key file is refused instead of signing with a weak key', async () => {
+  const { loadConfig } = await import('../src/config.js');
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const dir = mkdtempSync('/tmp/nearauth-key-');
+  writeFileSync(`${dir}/approval.key`, 'c2hvcnQ=');
+  assert.throws(() => loadConfig({ NEARAUTH_DATA_DIR: dir } as NodeJS.ProcessEnv), /at least 32 bytes/);
+  writeFileSync(`${dir}/approval.key`, '');
+  assert.equal(loadConfig({ NEARAUTH_DATA_DIR: dir } as NodeJS.ProcessEnv).approvalKey.length, 32);
+});
+
 test('HTTP API: authentication, origin allow-list, body limits, no cookies', async () => {
   const cfg = testConfig();
   const server = createApi(svc, cfg).listen(0, '127.0.0.1');
