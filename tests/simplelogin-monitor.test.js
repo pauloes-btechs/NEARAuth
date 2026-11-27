@@ -95,3 +95,14 @@ test('monitor reports each sender once, raises confidence history-wise, and surv
   assert.equal((await M.scan({ accounts: [account], provider: P.DemoProvider() })).unsupported, true);
   assert.equal((await M.scan({ accounts: [{ ...account, providerId: 'demo' }], provider: p })).events.length, 0, 'only this provider\'s aliases are scanned');
 });
+
+test('monitor retries an auto-block that failed on the previous scan', async () => {
+  const db = fakeSimpleLogin(), p = provider(db);
+  db.receive(7, 'promo@bigadnetwork.com');
+  const down = { ...p, blockSender: async () => { throw new Error('SimpleLogin request failed with HTTP 503'); } };
+  const first = await M.scan({ accounts: [account], provider: down, autoBlock: true });
+  assert.equal(first.events[0].action, 'block-failed');
+  const retry = await M.scan({ accounts: [account], provider: p, autoBlock: true, seen: first.seen, history: first.events });
+  assert.equal(retry.events[0].action, 'blocked');
+  assert.equal(db.contacts[7][0].block_forward, true);
+});

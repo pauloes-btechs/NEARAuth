@@ -35,7 +35,8 @@
               done = provider.blockSender(sender).then(function () { result.action = 'blocked'; },
                 function (e) { result.action = 'block-failed'; result.actionError = e.message; });
             }
-            return done.then(function () { seen[key] = true; history.push(result); events.push(result); });
+            // A failed block is not marked seen, so the next scan retries it.
+            return done.then(function () { if (result.action !== 'block-failed') seen[key] = true; history.push(result); events.push(result); });
           });
         }, Promise.resolve());
       }).catch(function (e) { errors.push({ alias: account.alias, message: e.message, code: e.code }); });
