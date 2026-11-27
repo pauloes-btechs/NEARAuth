@@ -299,9 +299,10 @@ export class AgentService {
     for (const t of threads) await this.saver.deleteThread(t);
     return { deletedWorkflows: threads.length };
   }
-  async applyRetention(userId: string) {
-    const u = await this.db.withUser(userId, (c) => users.get(c, userId));
-    if (u) return this.deleteHistory({ userId, deviceId: 'system', sessionId: 'retention', authenticatedAt: new Date() }, { olderThanDays: u.retention_days });
+  /** Deletes history older than each user's "keep history for N days" setting. The server runs it at start and every 6 hours. */
+  async applyRetention() {
+    const rows = await this.db.withSystem(async (c) => (await c.query('SELECT id, retention_days FROM agent_users')).rows);
+    for (const u of rows) await this.deleteHistory({ userId: u.id, deviceId: 'system', sessionId: 'retention', authenticatedAt: new Date() }, { olderThanDays: u.retention_days });
   }
 
   audit(s: Session) { return this.db.withUser(s.userId, (c) => auditBatch(c, s.userId)); }

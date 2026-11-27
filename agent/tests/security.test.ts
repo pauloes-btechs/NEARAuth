@@ -247,6 +247,16 @@ test('HTTP API: authentication, origin allow-list, body limits, no cookies', asy
   } finally { server.close(); }
 });
 
+test('retention deletes workflows older than the user\'s setting and keeps newer ones', async () => {
+  const { s } = await demoUser(svc);
+  const old = await startBlock(s), fresh = await startBlock(s);
+  await svc.updateSettings(s, { retentionDays: 30 });
+  await svc.db.withUser(s.userId, (c) => c.query(`UPDATE privacy_workflows SET created_at = now() - interval '31 days' WHERE thread_id = $1`, [old.threadId]));
+  await svc.applyRetention();
+  await assert.rejects(svc.snapshot(s, old.threadId), (e: { code: string }) => e.code === 'not_found');
+  assert.equal((await svc.snapshot(s, fresh.threadId)).threadId, fresh.threadId);
+});
+
 test('retention and history deletion remove workflows and their checkpoints', async () => {
   const { s } = await demoUser(svc);
   const w = await startBlock(s);
