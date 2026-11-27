@@ -33,7 +33,9 @@
   if (!PREVIEW) document.documentElement.dataset.nearauthExtension = chrome.runtime.getManifest().version;
 
   /* ---------- Dashboard bridge: mirror extension accounts into the dashboard's own storage ---------- */
-  var isDashboard = !!document.querySelector('meta[name="nearauth-dashboard"]');
+  // Any site can add the meta tag, so the origin must match too, or every page could read the alias list.
+  var DASHBOARD_ORIGINS = ['https://pauloes-btechs.github.io', 'http://localhost:8080', 'http://127.0.0.1:8080'];
+  var isDashboard = DASHBOARD_ORIGINS.indexOf(location.origin) !== -1 && !!document.querySelector('meta[name="nearauth-dashboard"]');
   function syncDashboard() {
     if (!isDashboard || PREVIEW) return;
     Promise.all([storage.get(ACCOUNTS_KEY, []), storage.get(MONITOR_KEY, { events: [] })]).then(function (out) {
