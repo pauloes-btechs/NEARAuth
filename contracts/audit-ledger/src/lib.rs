@@ -34,6 +34,8 @@ pub struct AuditLedger {
 
 fn parse_root(hex: &str) -> Root {
     require!(hex.len() == 64, "root must be 64 hex characters (SHA-256)");
+    // from_str_radix alone would accept "+f", so the logged root string could differ from the stored bytes.
+    require!(hex.bytes().all(|b| b.is_ascii_hexdigit()), "root must be hexadecimal");
     let mut out = [0u8; 32];
     for (i, byte) in out.iter_mut().enumerate() {
         *byte = u8::from_str_radix(&hex[2 * i..2 * i + 2], 16)
@@ -151,6 +153,14 @@ mod tests {
         ctx("relayer.testnet", 1, 1);
         let mut c = AuditLedger::new(acct("relayer.testnet"));
         c.commit("z".repeat(64), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "root must be hexadecimal")]
+    fn rejects_signed_hex_pairs() {
+        ctx("relayer.testnet", 1, 1);
+        let mut c = AuditLedger::new(acct("relayer.testnet"));
+        c.commit("+f".repeat(32), 1);
     }
 
     #[test]
