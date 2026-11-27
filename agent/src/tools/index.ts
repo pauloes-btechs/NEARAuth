@@ -39,7 +39,7 @@ const TITLE: Record<ActionKind, string> = {
   block_sender: 'Block one sender on one alias', unblock_sender: 'Unblock one sender', pause_alias: 'Pause the alias',
   resume_alias: 'Resume the alias', unsubscribe: 'Unsubscribe', credential_rotation: 'Rotate the password',
 };
-const INVERSE: Partial<Record<ActionKind, ActionKind>> = { block_sender: 'unblock_sender', unblock_sender: 'block_sender', pause_alias: 'resume_alias', resume_alias: 'pause_alias' };
+const INVERSE: Partial<Record<ActionKind, 'block_sender' | 'unblock_sender' | 'pause_alias' | 'resume_alias'>> = { block_sender: 'unblock_sender', unblock_sender: 'block_sender', pause_alias: 'resume_alias', resume_alias: 'pause_alias' };
 export const inverseOf = (a: ActionKind) => INVERSE[a] ?? null;
 
 export function buildTools(deps: ToolDeps): ToolRegistry {

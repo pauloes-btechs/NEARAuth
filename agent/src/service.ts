@@ -194,8 +194,7 @@ export class AgentService {
     const p = (await this.db.withUser(s.userId, (c) => proposals.get(c, s.userId, r.proposal_id!)))!;
     const inv = inverseOf(p.action as never);
     if (!inv || r.status !== 'verified') throw new AgentError('not_undoable', 'Only verified, reversible actions can be undone', 409);
-    const intent = inv === 'unblock_sender' ? 'unblock_sender' : inv === 'block_sender' ? 'block_sender' : inv === 'resume_alias' ? 'resume_alias' : 'pause_alias';
-    return this.start(s, { text: `Undo: ${INTENT_LABELS[intent]}`, intent, aliasId: p.alias_id ?? undefined, senderId: p.sender_id ?? undefined });
+    return this.start(s, { text: `Undo: ${INTENT_LABELS[inv]}`, intent: inv, aliasId: p.alias_id ?? undefined, senderId: p.sender_id ?? undefined });
   }
 
   /* ------------------------------------------------------------------ aliases, sync */
