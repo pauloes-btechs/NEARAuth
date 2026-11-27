@@ -224,7 +224,8 @@ test('real provider mode refuses to start on a non-loopback address', async () =
 test('a truncated approval key file is refused instead of signing with a weak key', async () => {
   const { loadConfig } = await import('../src/config.js');
   const { mkdtempSync, writeFileSync } = await import('node:fs');
-  const dir = mkdtempSync('/tmp/nearauth-key-');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(`${tmpdir()}/nearauth-key-`);
   writeFileSync(`${dir}/approval.key`, 'c2hvcnQ=');
   assert.throws(() => loadConfig({ NEARAUTH_DATA_DIR: dir } as NodeJS.ProcessEnv), /at least 32 bytes/);
   writeFileSync(`${dir}/approval.key`, '');

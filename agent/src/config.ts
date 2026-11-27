@@ -30,7 +30,7 @@ function loadApprovalKey(dataDir: string, env: NodeJS.ProcessEnv): Buffer {
   const file = resolve(dataDir, 'approval.key');
   const stored = env.NEARAUTH_APPROVAL_KEY || (existsSync(file) ? readFileSync(file, 'utf8').trim() : null);
   if (stored) {
-    // An empty or truncated key file would otherwise sign approvals with a guessable key.
+    // A truncated key would sign approvals with a guessable HMAC key. (An empty file is regenerated below.)
     const k = Buffer.from(stored, 'base64');
     if (k.length < 32) throw new Error(`Approval key (NEARAUTH_APPROVAL_KEY or ${file}) must be at least 32 bytes, base64-encoded`);
     return k;

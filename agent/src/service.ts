@@ -301,7 +301,11 @@ export class AgentService {
   /** Deletes history older than each user's "keep history for N days" setting. The server runs it at start and every 6 hours. */
   async applyRetention() {
     const rows = await this.db.withSystem(async (c) => (await c.query('SELECT id, retention_days FROM agent_users')).rows);
-    for (const u of rows) await this.deleteHistory({ userId: u.id, deviceId: 'system', sessionId: 'retention', authenticatedAt: new Date() }, { olderThanDays: u.retention_days });
+    for (const u of rows) {
+      // One user's failure must not stop retention for the rest.
+      await this.deleteHistory({ userId: u.id, deviceId: 'system', sessionId: 'retention', authenticatedAt: new Date() }, { olderThanDays: u.retention_days })
+        .catch((e) => console.error(`[agent] retention failed for one user: ${(e as Error).message}`));
+    }
   }
 
   audit(s: Session) { return this.db.withUser(s.userId, (c) => auditBatch(c, s.userId)); }
