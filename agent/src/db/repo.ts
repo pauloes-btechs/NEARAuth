@@ -114,7 +114,6 @@ export const receipts = {
       [userId, id, patch.status, patch.attempts ?? null, patch.sanitized_output ? JSON.stringify(patch.sanitized_output) : null, patch.error_code ?? null, patch.commitment ?? null]),
   get: (c: C, userId: string, id: string) => one<ReceiptRow>(c, 'SELECT * FROM tool_receipts WHERE user_id = $1 AND id = $2', [userId, id]),
   forThread: (c: C, userId: string, threadId: string) => many<ReceiptRow>(c, 'SELECT * FROM tool_receipts WHERE user_id = $1 AND thread_id = $2 ORDER BY created_at', [userId, threadId]),
-  list: (c: C, userId: string, limit = 100) => many<ReceiptRow>(c, 'SELECT * FROM tool_receipts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2', [userId, limit]),
 };
 
 export const policies = {

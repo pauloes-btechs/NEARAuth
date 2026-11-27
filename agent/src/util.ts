@@ -14,12 +14,6 @@ export const Merkle = require('../../extension/lib/merkle.js') as {
   build(commitments: string[]): Promise<{ root: string; leafCount: number; proofs: { side: 'left' | 'right'; hash: string }[][] }>;
   verify(commitment: string, proof: { side: 'left' | 'right'; hash: string }[], root: string): Promise<boolean>;
 };
-export const Responder = require('../../extension/lib/responder.js') as {
-  trustedAuthResult(r: { dkim: 'pass' | 'fail' | 'none'; dkimDomain?: string; signedHeaders?: string[]; verifier: string }): object;
-  isTrustedAuth(x: unknown): boolean;
-  checkUnsubscribeUrl(url: string, opts: { alignedDomain: string }): { ok: boolean; reason?: string; url?: string };
-  plan(result: unknown, message: unknown, policy: unknown): { type: string; reason?: string; url?: string }[];
-};
 
 export interface ClassifyResult {
   classification: 'expected' | 'processor' | 'related' | 'unverified' | 'unexpected';

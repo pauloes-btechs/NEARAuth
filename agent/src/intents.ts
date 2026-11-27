@@ -5,7 +5,6 @@ export const INTENTS = ['investigate_sender', 'block_sender', 'unblock_sender', 
 export type Intent = (typeof INTENTS)[number];
 export const IntentSchema = z.enum(INTENTS);
 
-export const WRITE_INTENTS: Intent[] = ['block_sender', 'unblock_sender', 'unsubscribe', 'pause_alias', 'resume_alias'];
 export const READ_INTENTS: Intent[] = ['investigate_sender', 'review_accounts', 'cleanup_dormant', 'summarize_history', 'explain_audit'];
 
 export const INTENT_LABELS: Record<Intent, string> = {
